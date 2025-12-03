@@ -7,6 +7,9 @@ Brute::Brute(const std::vector<sf::Vector2f>& path)
             30,        // damage to castle
             50)        // gold value
 {
+    setAttackRange(120.f);   // grunt fires from ~120 px away
+    setAttackRate(1.2f);     // one shot every 1.2 seconds
+    setAttackDamage(10);
     // Create visual representation - dark gray circle (bigger)
     shape.setRadius(25.0f);
     shape.setFillColor(sf::Color(50, 50, 50)); // Dark gray

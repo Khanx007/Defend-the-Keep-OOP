@@ -1,30 +1,31 @@
 #include "Entity.hpp"
 
-// Default constructor / destructor
+// default constructor / destructor
 Entity::Entity() = default;
 Entity::~Entity() = default;
 
-// Default damage handler: no-op. Subclasses should override to apply HP reduction.
-void Entity::takeDamage(int /*amount*/) {
-    // intentionally empty; override in subclasses that have health
+// default do-nothing takeDamage (override in towers/enemies)
+void Entity::takeDamage(int amount) {
+    (void)amount; // unused by default
 }
 
-// Default isAlive: returns true. Subclasses should override to reflect HP status.
+// default isAlive: check that sprite / entity is present.
+// Derived classes should override if they track hp.
 bool Entity::isAlive() const {
     return true;
 }
 
-// Position accessors - subclasses often rely on these
+// position accessors
 sf::Vector2f Entity::getPosition() const {
     return position;
 }
 
 void Entity::setPosition(const sf::Vector2f& pos) {
     position = pos;
-    // keep sprite in sync if used
     sprite.setPosition(position);
 }
 
+// Default bounds uses sprite global bounds
 sf::FloatRect Entity::getBounds() const {
     return sprite.getGlobalBounds();
 }

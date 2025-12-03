@@ -25,6 +25,10 @@ MageTower::MageTower(sf::Vector2f pos)
 }
 
 void MageTower::update(float dt, const std::vector<Enemy*>& enemies) {
+
+    Tower::baseUpdate(dt);
+    if (!isActive() || isDestroyed()) return;
+
     if (!isActive()) {
         activationTimer += dt;
         if (activationTimer >= activationDelay) active = true;

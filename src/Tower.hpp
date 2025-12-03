@@ -9,6 +9,9 @@ public:
     Tower(sf::Vector2f pos, float range, float damage, float fireRate, int cost);
 
     virtual void update(float dt, const std::vector<Enemy*>& enemies) = 0;
+    // Base logic all towers must use
+    void baseUpdate(float dt);
+
     virtual void render(sf::RenderWindow& window) override;
 
     sf::CircleShape getRangeCircle() const;
@@ -21,6 +24,9 @@ public:
     // Activation / cooldown after placement
     void startActivation(float delaySeconds = 3.0f);
     bool isActive() const;
+
+    void setLifetime(float seconds) { lifetimeSeconds = seconds; lifetimeTimer = seconds; }
+    bool isExpired() const { return lifetimeSeconds > 0.f && lifetimeTimer <= 0.f; }
 
 protected:
     Enemy* findTarget(const std::vector<Enemy*>& enemies);
@@ -44,4 +50,8 @@ protected:
 
     // turret rotation (angle in degrees)
     float turretRotation = 0.0f;
+
+    float lifetimeSeconds = 0.f;    // 0 = infinite; >0 = lifetime
+    float lifetimeTimer = 0.f;
+    float fireCooldown    = 0.f;
 };

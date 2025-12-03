@@ -33,6 +33,10 @@ ArcherTower::ArcherTower(sf::Vector2f pos)
 }
 
 void ArcherTower::update(float dt, const vector<Enemy*>& enemies) {
+    
+    Tower::baseUpdate(dt);
+    if (!isActive() || isDestroyed()) return;
+
     // Activation handling
     if (!isActive()) {
         activationTimer += dt;

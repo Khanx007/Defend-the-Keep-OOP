@@ -7,6 +7,10 @@ Grunt::Grunt(const std::vector<sf::Vector2f>& path)
             10,       // damage to castle
             10)       // gold value
 {
+    setAttackRange(120.f);   // grunt fires from ~120 px away
+    setAttackRate(1.2f);     // one shot every 1.2 seconds
+    setAttackDamage(10);
+    
     // Create visual representation - red circle
     shape.setRadius(15.0f);
     shape.setFillColor(sf::Color::Red);

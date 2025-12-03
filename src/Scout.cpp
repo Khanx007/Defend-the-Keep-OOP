@@ -7,6 +7,10 @@ Scout::Scout(const std::vector<sf::Vector2f>& path)
             15,    // damage to castle
             25)    // gold value
 {
+
+    setAttackRange(120.f);   // grunt fires from ~120 px away
+    setAttackRate(1.2f);     // one shot every 1.2 seconds
+    setAttackDamage(10);
     // Create visual representation - cyan circle (smaller)
     shape.setRadius(12.0f);
     shape.setFillColor(sf::Color::Cyan);

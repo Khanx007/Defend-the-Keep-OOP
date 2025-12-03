@@ -25,6 +25,9 @@ CannonTower::CannonTower(sf::Vector2f pos)
 }
 
 void CannonTower::update(float dt, const std::vector<Enemy*>& enemies) {
+    Tower::baseUpdate(dt);
+    if (!isActive() || isDestroyed()) return;
+
     if (!isActive()) {
         activationTimer += dt;
         if (activationTimer >= activationDelay) active = true;

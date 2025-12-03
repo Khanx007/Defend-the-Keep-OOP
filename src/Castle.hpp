@@ -1,25 +1,33 @@
 #pragma once
+#include "Entity.hpp"
 #include <SFML/Graphics.hpp>
+#include <string>
 
-class Castle {
+class Castle : public Entity {
 public:
     Castle();
 
-    void takeDamage(int amount);
+    // health
+    void takeDamage(int amount) override;
     bool isDestroyed() const { return health <= 0; }
+    bool isAlive() const override { return health > 0; }
+
     int getHealth() const { return health; }
 
-    void render(sf::RenderWindow& window);
-    sf::Vector2f getPosition() const;
+    // rendering
+    void render(sf::RenderWindow& window) override;
 
-    // Optional: set position if you want to move castle in tests
-    void setPosition(const sf::Vector2f& pos);
+    // optionally load texture from file; returns true on success
+    bool loadTexture(const std::string& path);
 
 private:
-    sf::Sprite sprite;
     sf::Texture texture;
-    int health = 100;
+    sf::RectangleShape healthBarBg;
+    sf::RectangleShape healthBarFg;
 
-    // fallback visual if texture isn't loaded
-    sf::RectangleShape body;
+    int health = 200;
+    int maxHealth = 200;
+
+    // visual fallback if texture not loaded
+    sf::CircleShape fallbackShape;
 };

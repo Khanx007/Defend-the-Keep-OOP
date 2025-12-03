@@ -3,12 +3,6 @@
 #include <iostream>
 #include <algorithm>
 
-// Note: your Entity.hpp should provide:
-//   - sf::Vector2f position;
-//   - sf::Sprite sprite;  (or equivalent)
-//   - virtual sf::Vector2f getPosition() const;  (optional)
-// If those names differ, adapt the uses of 'position' and 'sprite' below.
-
 using namespace std;
 
 // Helper function to calculate distance between two points
@@ -41,6 +35,10 @@ Enemy::Enemy(const vector<sf::Vector2f>& path, float speed, int health, int dama
     // default attackRate - can be tuned per subclass
     attackRate = 1.0f;
     attackCooldown = 0.0f;
+
+    // default to use projectile attacks if a spawner is provided
+    useProjectiles = true;
+    attackTarget = nullptr;
 }
 
 void Enemy::update(float dt) {
@@ -57,6 +55,14 @@ void Enemy::update(float dt) {
             slowMultiplier = 1.0f;
         }
     }
+    
+
+    // If we've reached the end and have no attack target, use fallbackTarget (castle) if set.
+    if (reachedEnd && attackTarget == nullptr && fallbackTarget != nullptr && fallbackTarget->isAlive()) {
+        attackTarget = fallbackTarget;
+        // optional debug:
+        std::cout << "[Enemy] Reached end and set fallback target (castle)\n";
+    }
 
     // If we have a specific attack target (castle or tower) and we've reached the end or are in attack range,
     // handle attacking using attackCooldown/attackRate.
@@ -66,24 +72,38 @@ void Enemy::update(float dt) {
         float dist = distance(position, tpos);
 
         // If target is close enough (or the enemy has reached the path end), attack.
-        // We'll use a small tolerance for "in range" — if you want ranged enemies change this.
-        const float attackRangeTolerance = 40.0f; // adjustable
-        if (reachedEnd || dist <= attackRangeTolerance) {
+        // Use the enemy's configured attackRange (plus a small tolerance)
+        const float effectiveAttackRange = attackRange; // already an Enemy member
+        if (reachedEnd || dist <= effectiveAttackRange){
             attackCooldown -= dt;
             if (attackCooldown <= 0.0f) {
                 attackCooldown = attackRate;
-                // Deal damage to the target
-                attackTarget->takeDamage(damage);
+
+                // Prefer spawning a projectile if a spawner callback exists and projectiles are enabled
+                if (useProjectiles && spawnEnemyProjectileFn) {
+                    std::cout << "[Enemy] Spawning projectile from (" << position.x << "," << position.y
+                              << ") -> target (" << tpos.x << "," << tpos.y << "), dmg=" << damage << "\n";
+                    // Spawn projectile (main owns container via callback)
+                    spawnEnemyProjectileFn(this, position, attackTarget, damage);
+                } else {
+                    // Fallback: direct damage (legacy behaviour)
+                    std::cout << "[Enemy] Direct damage fallback on target. dmg=" << damage << "\n";
+                    attackTarget->takeDamage(damage);
+                }
             }
-            // while attacking we do not move further
+            // While attacking we do not move further
+            sprite.setPosition(position);
             return;
+        } else {
+            // target out of effective attack range; clear and resume moving
+            attackTarget = nullptr;
         }
     }
 
     // Movement along the path (existing behavior)
     if (currentWaypoint >= static_cast<int>(path.size())) {
         reachedEnd = true;
-        // nothing else to do here (target handling above will handle attacks)
+        // nothing else to do here (target handling above will handle attacks if set)
         return;
     }
 
@@ -170,7 +190,7 @@ void Enemy::drawHealthBar(sf::RenderWindow& window) {
     float barHeight = 5.0f;
     float offsetY = -15.0f; // above the enemy
 
-    // Background (red bar)
+    // Background (grey bar)
     sf::RectangleShape bgBar(sf::Vector2f(barWidth, barHeight));
     bgBar.setPosition(position.x - barWidth/2, position.y + offsetY);
     bgBar.setFillColor(sf::Color(120,120,120));
@@ -184,8 +204,6 @@ void Enemy::drawHealthBar(sf::RenderWindow& window) {
 
     window.draw(bgBar);
     window.draw(healthBar);
-
-
 }
 
 // Multiply current movement speed by multiplier
@@ -193,4 +211,3 @@ void Enemy::multiplySpeed(float mult) {
     if (mult <= 0.0f) return;
     speed *= mult;
 }
-
