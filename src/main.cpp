@@ -22,14 +22,78 @@
 #include "CannonTower.hpp"
 #include "MageTower.hpp"
 
-
 using namespace std;
+
+// ----- GAME STATE & STATS -----
+enum class GameState { MENU, PLAYING, GAMEOVER };
+GameState gameState = GameState::MENU;
+
+int enemiesEliminatedCount = 0;
+int defensesPlacedCount = 0;
+int wavesSurvived = 0;
+int currentWaveLocal = 0;
+
+// UI elements for menu / endscreen (we create them in main())
+sf::Text titleText;
+sf::Text subtitleText;
+sf::Text buttonStartText;
+sf::Text buttonRestartText;
+sf::RectangleShape buttonStartRect;
+sf::RectangleShape buttonRestartRect;
+sf::Font globalFont; // small font used by menu/end screens
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Defend The Keep - Enemy Test");
     window.setFramerateLimit(60);
 
     UIManager ui(window);
+
+    // Load font for menu and gameover text. We assume "arial.TTF" exists in working dir (UIManager already uses it).
+    if (!globalFont.loadFromFile("arial.TTF")) {
+        std::cerr << "Warning: menu font not loaded (arial.TTF)\n";
+    }
+
+    // Title
+    titleText.setFont(globalFont);
+    titleText.setString("DEFEND THE KEEP");
+    titleText.setCharacterSize(56);
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setFillColor(sf::Color::White);
+    titleText.setPosition(120.f, 80.f);
+
+    // Subtitle
+    subtitleText.setFont(globalFont);
+    subtitleText.setString("Protect the castle from waves of intruders");
+    subtitleText.setCharacterSize(20);
+    subtitleText.setFillColor(sf::Color(200,200,200));
+    subtitleText.setPosition(120.f, 150.f);
+
+    // Start button
+    buttonStartRect.setSize({280.f, 60.f});
+    buttonStartRect.setFillColor(sf::Color(80,180,80));
+    buttonStartRect.setPosition(120.f, 240.f);
+    buttonStartRect.setOutlineThickness(3);
+    buttonStartRect.setOutlineColor(sf::Color::White);
+
+    buttonStartText.setFont(globalFont);
+    buttonStartText.setString("START GAME");
+    buttonStartText.setCharacterSize(24);
+    buttonStartText.setFillColor(sf::Color::Black);
+    buttonStartText.setPosition(buttonStartRect.getPosition().x + 20.f, buttonStartRect.getPosition().y + 12.f);
+
+    // Restart button (used on GameOver screen)
+    buttonRestartRect.setSize({220.f, 50.f});
+    buttonRestartRect.setFillColor(sf::Color(120,200,120));
+    buttonRestartRect.setPosition(120.f, 420.f);
+    buttonRestartRect.setOutlineThickness(3);
+    buttonRestartRect.setOutlineColor(sf::Color::White);
+
+    buttonRestartText.setFont(globalFont);
+    buttonRestartText.setString("RESTART");
+    buttonRestartText.setCharacterSize(20);
+    buttonRestartText.setFillColor(sf::Color::Black);
+    buttonRestartText.setPosition(buttonRestartRect.getPosition().x + 20.f, buttonRestartRect.getPosition().y + 10.f);
 
     // ===== CREATE TWO PATHS FOR ENEMIES =====
     // Path splits into upper and lower lanes, then merges near castle
@@ -97,8 +161,6 @@ int main()
     castle.setPosition({980.f, 360.f}); // make sure matches path end
 
     // ===== WaveManager spawn function =====
-    // This lambda will be used by WaveManager to create enemies into 'enemies' vector.
-    // It alternates between upper and lower paths for variety.
     // corrected spawnFunc — captures castle too
     std::function<Enemy*(const std::string&)> spawnFunc =
         [&enemies, &upperPath, &lowerPath, &enemyProjectiles, &castle](const std::string& type) -> Enemy* {
@@ -136,21 +198,19 @@ int main()
             return e;
     };
 
-
-       
-
-
-
-
-
     // Create WaveManager using spawnFunc
     WaveManager waveManager(spawnFunc);
-    // Tell the UI when waves start and progress
-    waveManager.onWaveStart = [&ui](int w){ ui.setWave(w); };
+
+    // Tell the UI when waves start and progress and capture wave locally
+    waveManager.onWaveStart = [&ui](int w){
+        ui.setWave(w);
+        currentWaveLocal = w; // currentWaveLocal is global, no capture needed
+    };
+
     waveManager.onWaveProgress = [&ui](int rem, int total){ ui.setWaveProgress(rem, total); };
 
-    // Start first wave
-    waveManager.startWave(1);
+    // Start first wave (but don't start until user hits Start in menu)
+    // We'll start automatically when player presses START.
 
     cout << "=== ENEMY TEST STARTED ===" << endl;
     cout << "Red circle = Grunt (medium speed)" << endl;
@@ -161,7 +221,6 @@ int main()
     cout << "Green squares = Valid tower plots" << endl;
     cout << "\nWatch them move along TWO split paths!" << endl;
     cout << "\nControls:" << endl;
-    cout << "  SPACE - Spawn more enemies (alternates paths)" << endl;
     cout << "  R - Reset/clear all enemies" << endl;
 
     sf::Clock clock;
@@ -173,101 +232,116 @@ int main()
 
         // Handle events
         sf::Event event;
-        // --- event loop (replacement) ---
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
 
-            // Handle UI clicks (tower placement)
+            // Mouse click handling -- behavior depends on game state
             if (event.type == sf::Event::MouseButtonPressed &&
                 event.mouseButton.button == sf::Mouse::Left)
             {
                 sf::Vector2i pixelPos(event.mouseButton.x, event.mouseButton.y);
                 sf::Vector2f worldPos = window.mapPixelToCoords(pixelPos);
 
-                cout << "Click at: (" << worldPos.x << ", " << worldPos.y << ")" << endl;
+                if (gameState == GameState::MENU) {
+                    // Start button
+                    if (buttonStartRect.getGlobalBounds().contains(worldPos)) {
+                        // Reset stats & clear world (just in case)
+                        enemiesEliminatedCount = 0;
+                        defensesPlacedCount = 0;
+                        wavesSurvived = 0;
+                        currentWaveLocal = 0;
 
-                // First, let UI handle the click (this updates the placing state)
-                bool wasPlacing = ui.isPlacingTower();
-                TowerType placingType = ui.getPlacingTowerType();
+                        for (auto* e : enemies) delete e;
+                        enemies.clear();
+                        for (auto* t : towers) delete t;
+                        towers.clear();
+                        for (auto* p : enemyProjectiles) delete p;
+                        enemyProjectiles.clear();
 
-                cout << "Before handleClick - wasPlacing: " << wasPlacing << endl;
+                        castle = Castle();
+                        castle.setPosition({980.f, 360.f});
 
-                ui.handleClick(worldPos);
+                        ui.updateGold(20000); // or whatever starting gold you want
+                        waveManager.startWave(1);
+                        gameState = GameState::PLAYING;
+                        std::cout << "[Main] Game started from menu\n";
+                    }
+                }
+                else if (gameState == GameState::GAMEOVER) {
+                    // Restart button
+                    if (buttonRestartRect.getGlobalBounds().contains(worldPos)) {
+                        // Reset and restart
+                        enemiesEliminatedCount = 0;
+                        defensesPlacedCount = 0;
+                        wavesSurvived = 0;
+                        currentWaveLocal = 0;
 
-                cout << "After handleClick - isPlacing: " << ui.isPlacingTower() << endl;
+                        for (auto* e : enemies) delete e;
+                        enemies.clear();
+                        for (auto* t : towers) delete t;
+                        towers.clear();
+                        for (auto* p : enemyProjectiles) delete p;
+                        enemyProjectiles.clear();
 
-                // Now check if a tower was just placed
-                if (wasPlacing && placingType != ui.getPlacingTowerType()) {
-                    // Find which plot was clicked
-                    for (const auto& plot : validPlots) {
-                        float dx = worldPos.x - plot.x;
-                        float dy = worldPos.y - plot.y;
-                        float dist = sqrt(dx*dx + dy*dy);
+                        castle = Castle();
+                        castle.setPosition({980.f, 360.f});
 
-                        if (dist < 40.0f) {
-                            Tower* newTower = nullptr;
+                        ui.updateGold(20000); // reset gold UI
+                        waveManager.startWave(1);
+                        gameState = GameState::PLAYING;
+                        std::cout << "[Main] Restarting game\n";
+                    }
+                }
+                else if (gameState == GameState::PLAYING) {
+                    // Gameplay: tower placement & UI handling
+                    cout << "Click at: (" << worldPos.x << ", " << worldPos.y << ")" << endl;
 
-                            // Place tower here depending on type
-                            if (placingType == TowerType::Archer) {
-                                newTower = new ArcherTower(plot);
-                            } else if (placingType == TowerType::Cannon) {
-                                newTower = new CannonTower(plot);
-                            } else if (placingType == TowerType::Magic) {
-                                newTower = new MageTower(plot);
+                    bool wasPlacing = ui.isPlacingTower();
+                    TowerType placingType = ui.getPlacingTowerType();
+
+                    cout << "Before handleClick - wasPlacing: " << wasPlacing << endl;
+                    ui.handleClick(worldPos);
+                    cout << "After handleClick - isPlacing: " << ui.isPlacingTower() << endl;
+
+                    // Now check if a tower was just placed
+                    if (wasPlacing && placingType != ui.getPlacingTowerType()) {
+                        // Find which plot was clicked
+                        for (const auto& plot : validPlots) {
+                            float dx = worldPos.x - plot.x;
+                            float dy = worldPos.y - plot.y;
+                            float dist = sqrt(dx*dx + dy*dy);
+
+                            if (dist < 40.0f) {
+                                Tower* newTower = nullptr;
+
+                                // Place tower here depending on type
+                                if (placingType == TowerType::Archer) {
+                                    newTower = new ArcherTower(plot);
+                                } else if (placingType == TowerType::Cannon) {
+                                    newTower = new CannonTower(plot);
+                                } else if (placingType == TowerType::Magic) {
+                                    newTower = new MageTower(plot);
+                                }
+
+                                if (newTower) {
+                                    newTower->setLifetime(30.0f); // tower will expire after 30s
+                                    towers.push_back(newTower);
+                                    defensesPlacedCount++;
+                                    cout << "✓ TOWER ACTUALLY PLACED at (" << plot.x << ", " << plot.y << ")"
+                                              << "  (total defenses placed: " << defensesPlacedCount << ")" << endl;
+                                } else {
+                                    cout << "Failed to create tower object (null)." << endl;
+                                }
+                                break;
                             }
-
-                            if (newTower) {
-                                // OPTIONAL: give towers a lifetime (seconds). 0 = permanent.
-                                // You can tune this value per tower type if you want.
-                                newTower->setLifetime(30.0f); // tower will expire after 30s
-
-                                towers.push_back(newTower);
-                                cout << "✓ TOWER ACTUALLY PLACED at (" << plot.x << ", " << plot.y << ")" << endl;
-                            } else {
-                                cout << "Failed to create tower object (null)." << endl;
-                            }
-                            break;
                         }
                     }
                 }
-            }
+            } // end mouse click
 
-            // Press SPACE to spawn more enemies (use spawnFunc so wave accounting is correct)
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space)
-            {
-                static bool useUpperPath = true;
-
-                if (spawnFunc) {
-                    // spawn two enemies (these will be counted in the wave system)
-                    spawnFunc("Grunt");
-                    spawnFunc("Scout");
-                    cout << "Spawned debug enemies via spawnFunc (counts in waves)." << endl;
-                } else {
-                    // fallback: if spawnFunc doesn't exist, keep your old behavior (not recommended)
-                    // if (useUpperPath) {
-                    //     enemies.push_back(new Grunt(upperPath));
-                    //     enemies.push_back(new Scout(upperPath));
-                    //     cout << "Spawned enemies on UPPER path (manual)!" << endl;
-                    // } else {
-                    //     enemies.push_back(new Brute(lowerPath));
-                    //     enemies.push_back(new Grunt(lowerPath));
-                    //     cout << "Spawned enemies on LOWER path (manual)!" << endl;
-                    // }
-                    // DEBUG ONLY: spawn 1 grunt instantly when pressing SPACE
-                    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space)
-                    {
-                        spawnFunc("Grunt");
-                        cout << "[DEBUG] Spawned manual Grunt via SPACE\n";
-                    }
-
-                    useUpperPath = !useUpperPath;
-                    cout << "Total enemies: " << enemies.size() << endl;
-                }
-            }
-
-            // Press R to reset/clear all enemies & projectiles
+            // KEY HANDLING (common, allow R to clear anytime)
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R)
             {
                 for (auto* enemy : enemies) {
@@ -275,7 +349,6 @@ int main()
                 }
                 enemies.clear();
 
-                // Clear enemy projectiles (if you added the container)
                 for (auto* p : enemyProjectiles) {
                     delete p;
                 }
@@ -283,229 +356,228 @@ int main()
 
                 cout << "All enemies & enemy projectiles cleared!" << endl;
             }
-        } // end event loop
+
+            // optional debug spawn with SPACE while playing - won't affect waves
+            if (gameState == GameState::PLAYING && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space)
+            {
+                // debug spawn (counts via spawnFunc)
+                spawnFunc("Grunt");
+                cout << "[DEBUG] Spawned manual Grunt via SPACE\n";
+            }
+
+        } // end event polling
 
         // ===== UPDATE =====
-        // Update wave manager (spawns enemies over time)
-        waveManager.update(dt);
+        if (gameState == GameState::PLAYING) {
+            // Update wave manager (spawns enemies over time)
+            waveManager.update(dt);
 
-        // Update all towers
-        for (auto* tower : towers) {
-            tower->update(dt, enemies);
-        }
-
-        // --- Remove expired or destroyed towers (and clear enemy targets that pointed to them) ---
-        for (int ti = static_cast<int>(towers.size()) - 1; ti >= 0; --ti) {
-            Tower* t = towers[ti];
-            if (!t) continue;
-
-            // If tower lifetime ended or it was destroyed by damage, delete it.
-            if (t->isExpired() || t->isDestroyed()) {
-                // Clear any enemy that had this tower as its attack target to avoid dangling pointers.
-                for (Enemy* e : enemies) {
-                    // Use getAttackTarget() if available; otherwise, use pointer comparison via getter.
-                    Entity* atk = nullptr;
-                    // Try to call getAttackTarget safely if compiled in your Enemy class:
-                    #ifdef ENABLE_GETATTACKTARGET
-                    atk = e->getAttackTarget();
-                    #else
-                    // Fallback: we can't query the enemy's target; instead, ensure enemies reacquire targets next frame.
-                    #endif
-
-                    if (atk == t) {
-                        e->clearAttackTarget();
-                    }
-                }
-
-                // clear attackTarget from enemies
-                for (Enemy* e : enemies) {
-                    if (!e) continue;
-                    if (e->getAttackTarget() == t) {
-                        e->clearAttackTarget();
-                    }
-                }
-
-                // before deleting tower 't', remove any enemy projectiles targeting it
-                for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
-                    EnemyProjectile* p = enemyProjectiles[pi];
-                    if (!p) continue;
-                    if (p->getTarget() == t) {
-                        delete p;
-                        enemyProjectiles.erase(enemyProjectiles.begin() + pi);
-                    }
-                }
-
-                delete t;
-                towers.erase(towers.begin() + ti);
-                std::cout << "[Main] Tower expired/destroyed and removed.\n";
-            }
-        }
-
-
-        // // Update enemy projectiles (before enemies so hits apply in same frame)
-        // for (int i = static_cast<int>(enemyProjectiles.size()) - 1; i >= 0; --i) {
-        //     enemyProjectiles[i]->update(dt);
-        //     if (enemyProjectiles[i]->shouldRemove()) {
-        //         delete enemyProjectiles[i];
-        //         enemyProjectiles.erase(enemyProjectiles.begin() + i);
-        //     }
-        // }
-
-
-        // --- Enemy target acquisition (prioritize nearest tower, else castle) ---
-        const float enemySearchRadius = 220.f; // tune this (in pixels) per your game balance
-
-        for (Enemy* e : enemies) {
-            if (!e) continue;
-            if (e->isDead() || e->hasReachedEnd()) {
-                e->clearAttackTarget();
-                continue;
+            // Update all towers
+            for (auto* tower : towers) {
+                tower->update(dt, enemies);
             }
 
-            // If enemy already has a valid target and it's alive, keep it.
-            Entity* currentTarget = nullptr;
-            #ifdef ENABLE_GETATTACKTARGET
-            currentTarget = e->getAttackTarget();
-            #endif
-            if (currentTarget) {
-                // If target is still alive and within a reasonable distance, keep it.
-                if (currentTarget->isAlive()) {
-                    // skip re-acquire
+            // --- Remove expired or destroyed towers (and clear enemy targets that pointed to them) ---
+            for (int ti = static_cast<int>(towers.size()) - 1; ti >= 0; --ti) {
+                Tower* t = towers[ti];
+                if (!t) continue;
+
+                // If tower lifetime ended or it was destroyed by damage, delete it.
+                if (t->isExpired() || t->isDestroyed()) {
+                    // Clear any enemy that had this tower as its attack target to avoid dangling pointers.
+                    for (Enemy* e : enemies) {
+                        if (!e) continue;
+                        if (e->getAttackTarget() == t) {
+                            e->clearAttackTarget();
+                        }
+                    }
+
+                    // before deleting tower 't', remove any enemy projectiles targeting it
+                    for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
+                        EnemyProjectile* p = enemyProjectiles[pi];
+                        if (!p) continue;
+                        if (p->getTarget() == t) {
+                            delete p;
+                            enemyProjectiles.erase(enemyProjectiles.begin() + pi);
+                        }
+                    }
+
+                    delete t;
+                    towers.erase(towers.begin() + ti);
+                    std::cout << "[Main] Tower expired/destroyed and removed.\n";
+                }
+            }
+
+            // --- Enemy target acquisition (prioritize nearest tower, else castle) ---
+            const float enemySearchRadius = 220.f; // tune this (in pixels) per your game balance
+
+            for (Enemy* e : enemies) {
+                if (!e) continue;
+                if (e->isDead()) { e->clearAttackTarget(); continue; }
+
+                // If enemy already has a valid target and it's alive, keep it.
+                Entity* currentTarget = e->getAttackTarget();
+                if (currentTarget) {
+                    if (currentTarget->isAlive()) continue;
+                    e->clearAttackTarget();
+                }
+
+                // Find nearest tower in range
+                Tower* nearest = nullptr;
+                float bestDist = 1e9f;
+                for (Tower* t : towers) {
+                    if (!t) continue;
+                    if (t->isDestroyed()) continue;
+
+                    float dx = e->getPosition().x - t->getPosition().x;
+                    float dy = e->getPosition().y - t->getPosition().y;
+                    float d = std::sqrt(dx*dx + dy*dy);
+                    if (d <= enemySearchRadius && d < bestDist) {
+                        bestDist = d;
+                        nearest = t;
+                    }
+                }
+
+                if (nearest) {
+                    e->setAttackTarget(nearest);
                     continue;
+                }
+
+                // No tower found — check castle distance
+                float dx = e->getPosition().x - castle.getPosition().x;
+                float dy = e->getPosition().y - castle.getPosition().y;
+                float dcastle = std::sqrt(dx*dx + dy*dy);
+                if (dcastle <= enemySearchRadius) {
+                    e->setAttackTarget(&castle);
                 } else {
                     e->clearAttackTarget();
                 }
             }
 
-            // Find nearest tower in range
-            Tower* nearest = nullptr;
-            float bestDist = 1e9f;
-            for (Tower* t : towers) {
-                if (!t) continue;
-                if (t->isDestroyed()) continue;
+            // Update all enemies
+            for (auto* enemy : enemies) {
+                enemy->update(dt);
+                enemy->resetColor();  // Reset hit color flash
+            }
 
-                float dx = e->getPosition().x - t->getPosition().x;
-                float dy = e->getPosition().y - t->getPosition().y;
-                float d = std::sqrt(dx*dx + dy*dy);
-                if (d <= enemySearchRadius && d < bestDist) {
-                    bestDist = d;
-                    nearest = t;
+            // --- Update enemy projectiles (move, hit, remove) ---
+            for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
+                EnemyProjectile* p = enemyProjectiles[pi];
+                if (!p) { enemyProjectiles.erase(enemyProjectiles.begin() + pi); continue; }
+
+                p->update(dt);
+
+                // If the projectile hit its target or target no longer exists, remove it
+                if (p->shouldRemove()) {
+                    delete p;
+                    enemyProjectiles.erase(enemyProjectiles.begin() + pi);
                 }
             }
 
-            if (nearest) {
-                e->setAttackTarget(nearest);
-                continue;
-            }
+            // Remove dead or finished enemies, award gold / damage castle / notify waves
+            for (int i = static_cast<int>(enemies.size()) - 1; i >= 0; --i) {
+                Enemy* e = enemies[i];
 
-            // No tower found — check castle distance
-            float dx = e->getPosition().x - castle.getPosition().x;
-            float dy = e->getPosition().y - castle.getPosition().y;
-            float dcastle = std::sqrt(dx*dx + dy*dy);
-            if (dcastle <= enemySearchRadius) {
-                e->setAttackTarget(&castle);
-            } else {
-                e->clearAttackTarget();
-            }
-        }
+                if (e->isDead()) {
+                    int goldGained = e->getGoldValue();
+                    cout << "Enemy died! Gained " << goldGained << " gold" << endl;
+                    ui.addGold(goldGained);
 
-        // Update all enemies
-        for (auto* enemy : enemies) {
-            enemy->update(dt);
-            enemy->resetColor();  // Reset hit color flash
-        }
+                    // increment enemy killed stat
+                    enemiesEliminatedCount++;
 
+                    // Only notify WaveManager once per enemy
+                    if (!e->isCountedByWave()) {
+                        waveManager.onEnemyKilled();
+                        e->markCountedByWave();
+                    }
 
-
-        // --- Update enemy projectiles (move, hit, remove) ---
-        for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
-            EnemyProjectile* p = enemyProjectiles[pi];
-            if (!p) { enemyProjectiles.erase(enemyProjectiles.begin() + pi); continue; }
-
-            p->update(dt);
-
-            // If the projectile hit its target or target no longer exists, remove it
-            if (p->shouldRemove()) {
-                delete p;
-                enemyProjectiles.erase(enemyProjectiles.begin() + pi);
-            }
-        }
-
-
-        // Remove dead or finished enemies, award gold / damage castle / notify waves
-        for (int i = static_cast<int>(enemies.size()) - 1; i >= 0; --i) {
-            Enemy* e = enemies[i];
-
-            if (e->isDead()) {
-                int goldGained = e->getGoldValue();
-                cout << "Enemy died! Gained " << goldGained << " gold" << endl;
-                ui.addGold(goldGained);
-
-                // Only notify WaveManager once per enemy
-                if (!e->isCountedByWave()) {
-                    waveManager.onEnemyKilled();
-                    e->markCountedByWave();
+                    delete e;
+                    enemies.erase(enemies.begin() + i);
                 }
+                else if (e->hasReachedEnd()) {
+                    // Enemy walked into castle area. Don't delete them immediately.
+                    if (!e->isCountedByWave()) {
+                        waveManager.onEnemyKilled();
+                        e->markCountedByWave();
+                        std::cout << "[Main] Enemy reached end: counted for wave (will now attack castle).\n";
+                    }
 
-                delete e;
-                enemies.erase(enemies.begin() + i);
-            }
-            else if (e->hasReachedEnd()) {
-                // Enemy walked into castle area. Don't delete them immediately.
-                // 1) Count them for the wave progress once (so waves advance correctly)
-                if (!e->isCountedByWave()) {
-                    waveManager.onEnemyKilled();
-                    e->markCountedByWave();
-                    std::cout << "[Main] Enemy reached end: counted for wave (will now attack castle).\n";
+                    if (e->getAttackTarget() == nullptr) {
+                        e->setAttackTarget(&castle);
+                    }
+
+                    // let enemy continue attacking castle (do not delete)
+                    continue;
                 }
-
-                // 2) Ensure they target the castle so their attack logic (projectiles) runs.
-                // Only set if they don't already have a target.
-                if (e->getAttackTarget() == nullptr) {
-                    e->setAttackTarget(&castle);
-                }
-
-                // 3) Do NOT delete them. Let Enemy::update() + projectiles handle castle damage over time.
-                // Move on to next enemy (we purposely don't erase now).
-                continue;
             }
 
-        }
-
+            // Check for game over (castle destroyed)
+            if (castle.isDestroyed()) {
+                gameState = GameState::GAMEOVER;
+                wavesSurvived = currentWaveLocal;
+                std::cout << "[Main] GAME OVER. Waves survived: " << wavesSurvived << "\n";
+                // stop spawning by not calling waveManager.update() while GAMEOVER
+            }
+        } // end PLAYING update
 
         // ===== RENDER =====
         window.clear(sf::Color(50, 150, 50));  // Grass green background
 
-        // Draw valid tower plot markers (green squares)
-        for (const auto& marker : plotMarkers) {
-            window.draw(marker);
+        if (gameState == GameState::MENU) {
+            // Draw menu UI
+            window.draw(titleText);
+            window.draw(subtitleText);
+            window.draw(buttonStartRect);
+            window.draw(buttonStartText);
+            ui.render();
         }
+        else if (gameState == GameState::PLAYING) {
+            // Draw game world as before
+            for (const auto& marker : plotMarkers) window.draw(marker);
+            for (const auto& marker : pathMarkers) window.draw(marker);
 
-        // Draw path markers (yellow and orange dots)
-        for (const auto& marker : pathMarkers) {
-            window.draw(marker);
+            castle.render(window);
+
+            for (auto* enemy : enemies) enemy->render(window);
+            for (auto* p : enemyProjectiles) p->render(window);
+
+            for (auto* tower : towers) tower->render(window);
+
+            ui.render();
         }
+        else if (gameState == GameState::GAMEOVER) {
+            // draw underlying game scene lightly (optional)
+            for (const auto& marker : plotMarkers) window.draw(marker);
+            for (const auto& marker : pathMarkers) window.draw(marker);
+            castle.render(window);
+            for (auto* enemy : enemies) enemy->render(window);
+            for (auto* tower : towers) tower->render(window);
 
-        // Draw Castle
-        castle.render(window);
+            // overlay
+            sf::RectangleShape overlay(sf::Vector2f(1280.f, 720.f));
+            overlay.setFillColor(sf::Color(0,0,0,160));
+            window.draw(overlay);
 
-        // Draw all enemies
-        for (auto* enemy : enemies) {
-            enemy->render(window);
+            // Game over text
+            sf::Text goTitle("GAME OVER", globalFont, 48);
+            goTitle.setFillColor(sf::Color::Red);
+            goTitle.setPosition(420.f, 80.f);
+            window.draw(goTitle);
+
+            // Stats
+            std::string statsStr = "Waves survived: " + std::to_string(wavesSurvived) + "\n"
+                                 + "Enemies eliminated: " + std::to_string(enemiesEliminatedCount) + "\n"
+                                 + "Defenses placed: " + std::to_string(defensesPlacedCount);
+            sf::Text statsText(statsStr, globalFont, 20);
+            statsText.setFillColor(sf::Color::White);
+            statsText.setPosition(420.f, 160.f);
+            window.draw(statsText);
+
+            // Restart button
+            window.draw(buttonRestartRect);
+            window.draw(buttonRestartText);
         }
-
-        // Draw enemy projectiles
-        for (auto* p : enemyProjectiles) {
-            p->render(window);
-        }
-
-        // Draw all towers
-        for (auto* tower : towers) {
-            tower->render(window);
-        }
-
-        // Draw UI (gold, wave, HP, tower buttons)
-        ui.render();
 
         window.display();
     } // end while(window.isOpen())
