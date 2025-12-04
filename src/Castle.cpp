@@ -70,3 +70,17 @@ void Castle::render(sf::RenderWindow& window) {
     window.draw(sprite);
     drawHealthBar(window);
 }
+
+
+// Add these to Castle.cpp (below takeDamage / isAlive)
+
+void Castle::heal(int amount) {
+    if (amount <= 0) return;
+    health += amount;
+    if (health > maxHealth) health = maxHealth;
+}
+
+
+
+
+

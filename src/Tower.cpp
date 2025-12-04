@@ -2,6 +2,7 @@
 #include "Enemy.hpp"
 #include <cmath>
 #include <iostream>
+#include <climits> // for INT_MAX
 
 using namespace std;
 
@@ -144,3 +145,58 @@ void Tower::baseUpdate(float dt)
 // bool Tower::isExpired() const {
 //     return (lifetimeSeconds > 0.0f) && (lifetimeTimer <= 0.0f);
 // }
+
+
+
+// Tower.cpp (add these functions)
+
+
+
+int Tower::getUpgradeCost() const {
+    // baseUpgradeCost should be a member (e.g. 60). If not present, adjust accordingly.
+    // Provide fallback if baseUpgradeCost not set.
+    int base = (baseUpgradeCost > 0) ? baseUpgradeCost : 60;
+    if (upgradeLevel == 0) return base;
+    if (upgradeLevel == 1) return static_cast<int>(base * 1.8f);
+    if (upgradeLevel == 2) return static_cast<int>(base * 2.8f);
+    return INT_MAX; // already maxed (or no further upgrades)
+}
+
+bool Tower::upgrade() {
+    // return false if already at max level
+    if (upgradeLevel >= 3) {
+        std::cout << "[Tower] Already at max upgrade level\n";
+        return false;
+    }
+
+    // you mentioned the UI will check/deduct gold before calling upgrade.
+    // If you prefer tower to check gold itself, pass gold ref or query UI; keep simple here.
+
+    upgradeLevel++;
+
+    // Example stat improvements per upgrade level:
+    // - Increase max HP by +30%
+    // - Increase damage by +25%
+    // - Decrease fireRate (faster firing) by 10% (fireRate is seconds per shot)
+    maxHp = static_cast<int>(std::max(1.0f, float(maxHp) * 1.3f));
+    // restore some HP on upgrade (heal up to 30% of new max)
+    int healAmount = static_cast<int>(maxHp * 0.3f);
+    hp = std::min(maxHp, hp + healAmount);
+
+    damage = damage + static_cast<int>(damage * 0.25f);
+
+    // Reduce the firing interval slightly (so actual shots/sec increases).
+    if (fireRate > 0.1f) fireRate = fireRate * 0.9f;
+
+    std::cout << "[Tower] Upgraded to level " << upgradeLevel
+              << " (hp=" << maxHp << ", dmg=" << damage << ", fireRate=" << fireRate << ")\n";
+
+    // Trigger onUpgrade hook so higher-level code (main/wavemanager) can react
+    if (onUpgrade) {
+        // We use the convention: onUpgrade(float extraSeconds) -> caller interprets as "extend inter-wave by extraSeconds"
+        float extraSeconds = 5.0f; // small breathing room
+        onUpgrade(extraSeconds);
+    }
+
+    return true;
+}

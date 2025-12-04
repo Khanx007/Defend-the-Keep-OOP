@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "Entity.hpp"
 #include <vector>
+#include <functional>
 
 class Enemy;  
 class Tower : public Entity {
@@ -27,6 +28,16 @@ public:
 
     void setLifetime(float seconds) { lifetimeSeconds = seconds; lifetimeTimer = seconds; }
     bool isExpired() const { return lifetimeSeconds > 0.f && lifetimeTimer <= 0.f; }
+
+    bool upgrade();                     // apply one upgrade level to this instance
+    int getUpgradeLevel() const { return upgradeLevel; }
+    int getUpgradeCost() const;         // cost for next upgrade (compute)
+
+    // Callback hook called when a tower has been successfully upgraded:
+    // Passes the extra seconds or 0.0f (your choice) so game-level code can react.
+    std::function<void(float /*extraSeconds*/)> onUpgrade;
+    sf::Vector2f getPosition() const { return position; }
+
 
 protected:
     Enemy* findTarget(const std::vector<Enemy*>& enemies);
@@ -57,5 +68,8 @@ protected:
 
     // in Tower class (private or protected)
     sf::Sprite sprite;
+
+    int upgradeLevel = 0;
+    int baseUpgradeCost  = 60;
 
 };

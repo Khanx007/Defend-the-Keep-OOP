@@ -3,7 +3,7 @@
 #include <iostream>
 
 Scout::Scout(const std::vector<sf::Vector2f>& path)
-    : Enemy(path, 75.f, 30, 15, 25)
+    : Enemy(path, 75.f, 20, 15, 25)
 {
     setAttackRange(120.f);
     setAttackRate(0.8f);

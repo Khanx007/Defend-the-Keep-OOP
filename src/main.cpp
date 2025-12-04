@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <climits>
 
 // SFML
 #include <SFML/Graphics.hpp>
@@ -23,8 +24,6 @@
 #include "MageTower.hpp"
 #include "AssetManager.hpp"
 #include "AudioManager.hpp"
-
-
 
 using namespace std;
 
@@ -48,20 +47,19 @@ sf::Font globalFont; // small font used by menu/end screens
 
 int main()
 {
-
-   // === Textures (adjust filenames/case if yours differ) ===
+    // === Textures (adjust filenames/case if yours differ) ===
     AssetManager::loadTexture("archer_tower", "assets/sprites/archer_tower.png");
     AssetManager::loadTexture("arrow",        "assets/sprites/arrow.png");
     AssetManager::loadTexture("brute",        "assets/sprites/brute.png");
     AssetManager::loadTexture("cannon_tower", "assets/sprites/cannon_tower.png");
     AssetManager::loadTexture("cannonball",   "assets/sprites/cannonball.png");
     AssetManager::loadTexture("castle",       "assets/sprites/castle.png");
-    AssetManager::loadTexture("grunt",        "assets/sprites/grunt.jpg");      // you had grunt.jpg
+    AssetManager::loadTexture("grunt",        "assets/sprites/grunt.jpg");
     AssetManager::loadTexture("mage_tower",   "assets/sprites/mage_tower.png");
     AssetManager::loadTexture("magicbolt",    "assets/sprites/magicbolt.png");
     AssetManager::loadTexture("scout",        "assets/sprites/scout.png");
 
-    // (Optional) spritesheet textures
+    // optional spritesheet
     AssetManager::loadTexture("grunt_walk",   "assets/spritesheets/grunt_walk.png");
 
     // === Fonts ===
@@ -70,102 +68,34 @@ int main()
     // === SFX ===
     AudioManager::loadSFX("shoot_arrow", "assets/sfx/shoot_arrow.ogg");
     AudioManager::loadSFX("explosion",   "assets/sfx/explosion.wav");
-    AudioManager::loadSFX("enemy_hit",   "assets/sfx/enemy_hit.wav");    // change names to what you have
+    AudioManager::loadSFX("enemy_hit",   "assets/sfx/enemy_hit.wav");
     AudioManager::loadSFX("castle_hit",  "assets/sfx/castle_hit.wav");
 
     // === BGM (AudioManager.playBGM opens directly by filename) ===
     AudioManager::playBGM("assets/music/bgm_loop.wav", true, 35.f);
-
-
-
-
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Defend The Keep - Enemy Test");
     window.setFramerateLimit(60);
 
     UIManager ui(window);
 
-    // Load font for menu and gameover text. We assume "arial.TTF" exists in working dir (UIManager already uses it).
-    if (!globalFont.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: menu font not loaded (assets/fonts/arial.ttf)\n";
-    }
-
-    // Title
-    titleText.setFont(globalFont);
-    titleText.setString("DEFEND THE KEEP");
-    titleText.setCharacterSize(56);
-    titleText.setStyle(sf::Text::Bold);
-    titleText.setFillColor(sf::Color::White);
-    titleText.setPosition(120.f, 80.f);
-
-    // Subtitle
-    subtitleText.setFont(globalFont);
-    subtitleText.setString("Protect the castle from waves of intruders");
-    subtitleText.setCharacterSize(20);
-    subtitleText.setFillColor(sf::Color(200,200,200));
-    subtitleText.setPosition(120.f, 150.f);
-
-    // Start button
-    buttonStartRect.setSize({280.f, 60.f});
-    buttonStartRect.setFillColor(sf::Color(80,180,80));
-    buttonStartRect.setPosition(120.f, 240.f);
-    buttonStartRect.setOutlineThickness(3);
-    buttonStartRect.setOutlineColor(sf::Color::White);
-
-    buttonStartText.setFont(globalFont);
-    buttonStartText.setString("START GAME");
-    buttonStartText.setCharacterSize(24);
-    buttonStartText.setFillColor(sf::Color::Black);
-    buttonStartText.setPosition(buttonStartRect.getPosition().x + 20.f, buttonStartRect.getPosition().y + 12.f);
-
-    // Restart button (used on GameOver screen)
-    buttonRestartRect.setSize({220.f, 50.f});
-    buttonRestartRect.setFillColor(sf::Color(120,200,120));
-    buttonRestartRect.setPosition(120.f, 420.f);
-    buttonRestartRect.setOutlineThickness(3);
-    buttonRestartRect.setOutlineColor(sf::Color::White);
-
-    buttonRestartText.setFont(globalFont);
-    buttonRestartText.setString("RESTART");
-    buttonRestartText.setCharacterSize(20);
-    buttonRestartText.setFillColor(sf::Color::Black);
-    buttonRestartText.setPosition(buttonRestartRect.getPosition().x + 20.f, buttonRestartRect.getPosition().y + 10.f);
-
     // ===== CREATE TWO PATHS FOR ENEMIES =====
-    // Path splits into upper and lower lanes, then merges near castle
-
-    // UPPER PATH (top lane)
     vector<sf::Vector2f> upperPath = {
-        {50, 360},      // Start: far left, center
-        {200, 360},     // Move right
-        {200, 200},     // Split UP to top lane
-        {800, 200},     // Move right along top lane
-        {900, 300},     // Merge down toward castle
-        {980, 360}      // End: castle entrance
+        {50, 360}, {200, 360}, {200, 200}, {800, 200}, {900, 300}, {980, 360}
     };
 
-    // LOWER PATH (bottom lane)
     vector<sf::Vector2f> lowerPath = {
-        {50, 360},  // Start: far left, center (same start)
-        {200, 360}, // Move right
-        {200, 520}, // Split DOWN to bottom lane
-        {800, 520},   // Move right along bottom lane
-        {900, 420},  // Merge up toward castle
-        {980, 360} // End: castle entrance (same end)
+        {50, 360}, {200, 360}, {200, 520}, {800, 520}, {900, 420}, {980, 360}
     };
 
     // Draw BOTH paths as circles so you can see them
     vector<sf::CircleShape> pathMarkers;
-
-    // Draw upper path in YELLOW
     for (const auto& point : upperPath) {
         sf::CircleShape marker(8.0f);
         marker.setPosition(point.x - 8, point.y - 8);
         marker.setFillColor(sf::Color(255, 255, 0, 150)); // Yellow
         pathMarkers.push_back(marker);
     }
-
-    // Draw lower path in ORANGE
     for (const auto& point : lowerPath) {
         sf::CircleShape marker(8.0f);
         marker.setPosition(point.x - 8, point.y - 8);
@@ -175,12 +105,11 @@ int main()
 
     // Draw valid tower plots as green squares
     const auto& validPlots = getValidPlots();
-
     vector<sf::RectangleShape> plotMarkers;
     for (const auto& plot : validPlots) {
         sf::RectangleShape square(sf::Vector2f(60.0f, 60.0f));
         square.setPosition(plot.x - 30.0f, plot.y - 30.0f);
-        square.setFillColor(sf::Color(0, 255, 0, 50));  // Semi-transparent green
+        square.setFillColor(sf::Color(0, 255, 0, 50));
         square.setOutlineThickness(2);
         square.setOutlineColor(sf::Color(0, 255, 0, 150));
         plotMarkers.push_back(square);
@@ -189,18 +118,14 @@ int main()
     // ===== CREATE TEST ENEMIES & TOWERS =====
     vector<Enemy*> enemies;
     vector<Tower*> towers;
-
     std::vector<EnemyProjectile*> enemyProjectiles;
 
     // Create Castle
     Castle castle;
-    castle.setPosition({980.f, 360.f}); // make sure matches path end
-
+    castle.setPosition({980.f, 360.f});
     int prevCastleHP = castle.getHealth();
 
-
     // ===== WaveManager spawn function =====
-    // corrected spawnFunc — captures castle too
     std::function<Enemy*(const std::string&)> spawnFunc =
         [&enemies, &upperPath, &lowerPath, &enemyProjectiles, &castle](const std::string& type) -> Enemy* {
             static bool useUpper = true;
@@ -218,8 +143,6 @@ int main()
                 // projectile spawner
                 e->setProjectileSpawner([&enemyProjectiles](Enemy* self, sf::Vector2f origin, Entity* target, int damage) {
                     enemyProjectiles.push_back(new EnemyProjectile(origin, target, 300.f, damage));
-
-                    // Play sfx audio
                     AudioManager::playSFX("shoot_arrow", 80.f);
                 });
 
@@ -227,7 +150,7 @@ int main()
                 e->setFallbackTarget(&castle);
             }
 
-            // STEP 4: SAFETY CHECK
+            // Safety logging
             if (e) {
                 if (!e->hasProjectileSpawner()) {
                     std::cout << "[ERROR] Enemy spawned WITHOUT projectile spawner! type=" << type << "\n";
@@ -243,27 +166,108 @@ int main()
     // Create WaveManager using spawnFunc
     WaveManager waveManager(spawnFunc);
 
-    // Tell the UI when waves start and progress and capture wave locally
-    waveManager.onWaveStart = [&ui](int w){
-        ui.setWave(w);
-        currentWaveLocal = w; // currentWaveLocal is global, no capture needed
+    // ---- UI callbacks (place AFTER castle, towers, waveManager are declared) ----
+
+    // Heal callback: UI requests a heal amount (UI may have deducted gold already)
+    ui.onHealRequested = [&castle, &ui, &waveManager](int healAmount) {
+        castle.heal(healAmount);
+        ui.updateCastleHealth(castle.getHealth());
+        // Behavior B: reset inter-wave delay to 30s for breathing room
+        // waveManager.setInterWaveDelay(30.f);
+        // waveManager.extendInterWaveDelay(5.f);
+        std::cout << "[Main] Castle healed +" << healAmount << " HP\n";
     };
 
+    // Upgrade callback: UI passes world position for upgrade intent.
+    ui.onUpgradeRequest = [&towers, &ui, &waveManager](sf::Vector2f worldPos) {
+        constexpr float pickRadius = 40.f;
+        bool upgradedAny = false;
+
+        for (Tower* t : towers) {
+            if (!t) continue;
+            sf::Vector2f tp = t->getPosition(); // Tower::getPosition() must exist
+            float dx = worldPos.x - tp.x;
+            float dy = worldPos.y - tp.y;
+            float d = std::sqrt(dx*dx + dy*dy);
+            if (d <= pickRadius) {
+                int cost = t->getUpgradeCost();
+                if (cost == INT_MAX) {
+                    std::cout << "[Main] Tower at (" << tp.x << "," << tp.y << ") is already max level.\n";
+                    return;
+                }
+                if (ui.getGold() < cost) {
+                    std::cout << "[Main] Not enough gold to upgrade (cost=" << cost << ")\n";
+                    return;
+                }
+                // Deduct gold then upgrade
+                ui.addGold(-cost);
+                t->upgrade(); // Tower::upgrade() modifies tower; it doesn't return bool in your code
+                upgradedAny = true;
+                std::cout << "[Main] Tower upgraded at (" << tp.x << "," << tp.y << ")\n";
+                // Behavior B: reset inter-wave delay for breathing room
+                // waveManager.setInterWaveDelay(30.f);
+                waveManager.extendInterWaveDelay(5.f);
+                break; // only upgrade one tower at the clicked spot
+            }
+        }
+        if (!upgradedAny) {
+            std::cout << "[Main] No tower found at that position to upgrade.\n";
+        }
+    };
+
+    // Tell the UI when waves start and progress and capture wave locally
+    waveManager.onWaveStart = [&ui, &currentWaveLocal](int w){
+        ui.setWave(w);
+        currentWaveLocal = w;
+    };
     waveManager.onWaveProgress = [&ui](int rem, int total){ ui.setWaveProgress(rem, total); };
 
-    // Start first wave (but don't start until user hits Start in menu)
-    // We'll start automatically when player presses START.
+    // Start first wave not automatically; game menu START triggers it.
+
+    // Setup menu UI texts
+    if (!globalFont.loadFromFile("assets/fonts/arial.ttf")) {
+        std::cerr << "Warning: menu font not loaded (assets/fonts/arial.ttf)\n";
+    }
+
+    titleText.setFont(globalFont);
+    titleText.setString("DEFEND THE KEEP");
+    titleText.setCharacterSize(56);
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setFillColor(sf::Color::White);
+    titleText.setPosition(120.f, 80.f);
+
+    subtitleText.setFont(globalFont);
+    subtitleText.setString("Protect the castle from waves of intruders");
+    subtitleText.setCharacterSize(20);
+    subtitleText.setFillColor(sf::Color(200,200,200));
+    subtitleText.setPosition(120.f, 150.f);
+
+    buttonStartRect.setSize({280.f, 60.f});
+    buttonStartRect.setFillColor(sf::Color(80,180,80));
+    buttonStartRect.setPosition(120.f, 240.f);
+    buttonStartRect.setOutlineThickness(3);
+    buttonStartRect.setOutlineColor(sf::Color::White);
+
+    buttonStartText.setFont(globalFont);
+    buttonStartText.setString("START GAME");
+    buttonStartText.setCharacterSize(24);
+    buttonStartText.setFillColor(sf::Color::Black);
+    buttonStartText.setPosition(buttonStartRect.getPosition().x + 20.f, buttonStartRect.getPosition().y + 12.f);
+
+    buttonRestartRect.setSize({220.f, 50.f});
+    buttonRestartRect.setFillColor(sf::Color(120,200,120));
+    buttonRestartRect.setPosition(120.f, 420.f);
+    buttonRestartRect.setOutlineThickness(3);
+    buttonRestartRect.setOutlineColor(sf::Color::White);
+
+    buttonRestartText.setFont(globalFont);
+    buttonRestartText.setString("RESTART");
+    buttonRestartText.setCharacterSize(20);
+    buttonRestartText.setFillColor(sf::Color::Black);
+    buttonRestartText.setPosition(buttonRestartRect.getPosition().x + 20.f, buttonRestartRect.getPosition().y + 10.f);
 
     cout << "=== ENEMY TEST STARTED ===" << endl;
-    cout << "Red circle = Grunt (medium speed)" << endl;
-    cout << "Gray circle = Brute (slow tank)" << endl;
-    cout << "Cyan circle = Scout (fast)" << endl;
-    cout << "Yellow dots = UPPER path" << endl;
-    cout << "Orange dots = LOWER path" << endl;
-    cout << "Green squares = Valid tower plots" << endl;
-    cout << "\nWatch them move along TWO split paths!" << endl;
-    cout << "\nControls:" << endl;
-    cout << "  R - Reset/clear all enemies" << endl;
+    cout << "Controls: R clear, Space debug spawn (while playing)" << endl;
 
     sf::Clock clock;
 
@@ -305,7 +309,7 @@ int main()
                         castle = Castle();
                         castle.setPosition({980.f, 360.f});
 
-                        ui.updateGold(20000); // or whatever starting gold you want
+                        ui.updateGold(2000); // starting gold
                         waveManager.startWave(1);
                         gameState = GameState::PLAYING;
                         std::cout << "[Main] Game started from menu\n";
@@ -330,7 +334,7 @@ int main()
                         castle = Castle();
                         castle.setPosition({980.f, 360.f});
 
-                        ui.updateGold(20000); // reset gold UI
+                        ui.updateGold(2000); // reset gold UI
                         waveManager.startWave(1);
                         gameState = GameState::PLAYING;
                         std::cout << "[Main] Restarting game\n";
@@ -369,6 +373,12 @@ int main()
 
                                 if (newTower) {
                                     newTower->setLifetime(30.0f); // tower will expire after 30s
+                                    // attach onUpgrade callback (resets inter-wave)
+                                    newTower->onUpgrade = [&waveManager](float extraSeconds) {
+                                        // choose behavior: reset to fixed 30s for breathing room
+                                        // waveManager.setInterWaveDelay(30.0f);
+                                        // waveManager.extendInterWaveDelay(5.f);
+                                    };
                                     towers.push_back(newTower);
                                     defensesPlacedCount++;
                                     cout << "✓ TOWER ACTUALLY PLACED at (" << plot.x << ", " << plot.y << ")"
@@ -386,14 +396,10 @@ int main()
             // KEY HANDLING (common, allow R to clear anytime)
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R)
             {
-                for (auto* enemy : enemies) {
-                    delete enemy;
-                }
+                for (auto* enemy : enemies) delete enemy;
                 enemies.clear();
 
-                for (auto* p : enemyProjectiles) {
-                    delete p;
-                }
+                for (auto* p : enemyProjectiles) delete p;
                 enemyProjectiles.clear();
 
                 cout << "All enemies & enemy projectiles cleared!" << endl;
@@ -406,7 +412,6 @@ int main()
                 spawnFunc("Grunt");
                 cout << "[DEBUG] Spawned manual Grunt via SPACE\n";
             }
-
         } // end event polling
 
         // ===== UPDATE =====
@@ -424,7 +429,6 @@ int main()
                 Tower* t = towers[ti];
                 if (!t) continue;
 
-                // If tower lifetime ended or it was destroyed by damage, delete it.
                 if (t->isExpired() || t->isDestroyed()) {
                     // Clear any enemy that had this tower as its attack target to avoid dangling pointers.
                     for (Enemy* e : enemies) {
@@ -451,13 +455,12 @@ int main()
             }
 
             // --- Enemy target acquisition (prioritize nearest tower, else castle) ---
-            const float enemySearchRadius = 220.f; // tune this (in pixels) per your game balance
+            const float enemySearchRadius = 220.f; // tune this
 
             for (Enemy* e : enemies) {
                 if (!e) continue;
                 if (e->isDead()) { e->clearAttackTarget(); continue; }
 
-                // If enemy already has a valid target and it's alive, keep it.
                 Entity* currentTarget = e->getAttackTarget();
                 if (currentTarget) {
                     if (currentTarget->isAlive()) continue;
@@ -499,7 +502,7 @@ int main()
             // Update all enemies
             for (auto* enemy : enemies) {
                 enemy->update(dt);
-                enemy->resetColor();  // Reset hit color flash
+                enemy->resetColor();
             }
 
             // --- Update enemy projectiles (move, hit, remove) ---
@@ -509,7 +512,6 @@ int main()
 
                 p->update(dt);
 
-                // If the projectile hit its target or target no longer exists, remove it
                 if (p->shouldRemove()) {
                     delete p;
                     enemyProjectiles.erase(enemyProjectiles.begin() + pi);
@@ -526,10 +528,8 @@ int main()
                     ui.addGold(goldGained);
                     AudioManager::playSFX("enemy_hit", 85.f);
 
-                    // increment enemy killed stat
                     enemiesEliminatedCount++;
 
-                    // Only notify WaveManager once per enemy
                     if (!e->isCountedByWave()) {
                         waveManager.onEnemyKilled();
                         e->markCountedByWave();
@@ -539,7 +539,6 @@ int main()
                     enemies.erase(enemies.begin() + i);
                 }
                 else if (e->hasReachedEnd()) {
-                    // Enemy walked into castle area. Don't delete them immediately.
                     if (!e->isCountedByWave()) {
                         waveManager.onEnemyKilled();
                         e->markCountedByWave();
@@ -549,8 +548,6 @@ int main()
                     if (e->getAttackTarget() == nullptr) {
                         e->setAttackTarget(&castle);
                     }
-
-                    // let enemy continue attacking castle (do not delete)
                     continue;
                 }
             }
@@ -562,13 +559,11 @@ int main()
                 prevCastleHP = currCastleHP;
             }
 
-
             // Check for game over (castle destroyed)
             if (castle.isDestroyed()) {
                 gameState = GameState::GAMEOVER;
                 wavesSurvived = currentWaveLocal;
                 std::cout << "[Main] GAME OVER. Waves survived: " << wavesSurvived << "\n";
-                // stop spawning by not calling waveManager.update() while GAMEOVER
             }
         } // end PLAYING update
 
@@ -584,7 +579,6 @@ int main()
             ui.render();
         }
         else if (gameState == GameState::PLAYING) {
-            // Draw game world as before
             for (const auto& marker : plotMarkers) window.draw(marker);
             for (const auto& marker : pathMarkers) window.draw(marker);
 
@@ -598,25 +592,21 @@ int main()
             ui.render();
         }
         else if (gameState == GameState::GAMEOVER) {
-            // draw underlying game scene lightly (optional)
             for (const auto& marker : plotMarkers) window.draw(marker);
             for (const auto& marker : pathMarkers) window.draw(marker);
             castle.render(window);
             for (auto* enemy : enemies) enemy->render(window);
             for (auto* tower : towers) tower->render(window);
 
-            // overlay
             sf::RectangleShape overlay(sf::Vector2f(1280.f, 720.f));
             overlay.setFillColor(sf::Color(0,0,0,160));
             window.draw(overlay);
 
-            // Game over text
             sf::Text goTitle("GAME OVER", globalFont, 48);
             goTitle.setFillColor(sf::Color::Red);
             goTitle.setPosition(420.f, 80.f);
             window.draw(goTitle);
 
-            // Stats
             std::string statsStr = "Waves survived: " + std::to_string(wavesSurvived) + "\n"
                                  + "Enemies eliminated: " + std::to_string(enemiesEliminatedCount) + "\n"
                                  + "Defenses placed: " + std::to_string(defensesPlacedCount);
@@ -625,7 +615,6 @@ int main()
             statsText.setPosition(420.f, 160.f);
             window.draw(statsText);
 
-            // Restart button
             window.draw(buttonRestartRect);
             window.draw(buttonRestartText);
         }
@@ -634,19 +623,13 @@ int main()
     } // end while(window.isOpen())
 
     // ===== CLEANUP =====
-    for (auto* enemy : enemies) {
-        delete enemy;
-    }
+    for (auto* enemy : enemies) delete enemy;
     enemies.clear();
 
-    for (auto* tower : towers) {
-        delete tower;
-    }
+    for (auto* tower : towers) delete tower;
     towers.clear();
 
-    for (auto* p : enemyProjectiles) {
-        delete p;
-    }
+    for (auto* p : enemyProjectiles) delete p;
     enemyProjectiles.clear();
 
     cout << "Game closed. Goodbye!" << endl;

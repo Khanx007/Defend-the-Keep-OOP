@@ -1,8 +1,9 @@
+// UIManager.cpp
 #include "UIManager.hpp"
 #include <iostream>
 #include <cmath>
 #include <string>
- #include "placement.hpp"
+#include "placement.hpp"
 
 using namespace std;
 
@@ -48,43 +49,71 @@ UIManager::UIManager(sf::RenderWindow& window): window(window) {
 
     // Set up archer button and text
     archerButton.setSize(sf::Vector2f(200.f, 70.f));
-    archerButton.setPosition(1055.f, 200.f);
+    archerButton.setPosition(1055.f, 150.f);
     archerButton.setFillColor(sf::Color(70, 70, 70, 255));
     archerButton.setOutlineThickness(4);
     archerButton.setOutlineColor(sf::Color::Yellow);
 
     archerButtonText.setFont(font);
-    archerButtonText.setCharacterSize(20);
+    archerButtonText.setCharacterSize(18);
     archerButtonText.setFillColor(sf::Color::White);
     archerButtonText.setStyle(sf::Text::Bold);
     archerButtonText.setString("Archer\n50 Gold");
-    archerButtonText.setPosition(1080.f, 210.f);
+    archerButtonText.setPosition(1080.f, 160.f);
 
     // Cannon button
     cannonButton.setSize(sf::Vector2f(200.f, 70.f));
-    cannonButton.setPosition(1055.f, 280.f);
+    cannonButton.setPosition(1055.f, 230.f);
     cannonButton.setFillColor(sf::Color(70,70,70));
     cannonButton.setOutlineThickness(4);
     cannonButton.setOutlineColor(sf::Color::Yellow);
     cannonButtonText.setFont(font);
-    cannonButtonText.setCharacterSize(20);
+    cannonButtonText.setCharacterSize(18);
     cannonButtonText.setFillColor(sf::Color::White);
     cannonButtonText.setStyle(sf::Text::Bold);
     cannonButtonText.setString("Cannon\n100 Gold");
-    cannonButtonText.setPosition(1080.f, 290.f);
+    cannonButtonText.setPosition(1080.f, 240.f);
 
     // Magic button
     magicButton.setSize(sf::Vector2f(200.f, 70.f));
-    magicButton.setPosition(1055.f, 360.f);
+    magicButton.setPosition(1055.f, 310.f);
     magicButton.setFillColor(sf::Color(70,70,70));
     magicButton.setOutlineThickness(4);
     magicButton.setOutlineColor(sf::Color::Yellow);
     magicButtonText.setFont(font);
-    magicButtonText.setCharacterSize(20);
+    magicButtonText.setCharacterSize(18);
     magicButtonText.setFillColor(sf::Color::White);
     magicButtonText.setStyle(sf::Text::Bold);
     magicButtonText.setString("Mage\n120 Gold");
-    magicButtonText.setPosition(1080.f, 370.f);
+    magicButtonText.setPosition(1080.f, 320.f);
+
+    // Upgrade button (click + then click a placed tower to upgrade)
+    upgradeButton.setSize(sf::Vector2f(200.f, 50.f));
+    upgradeButton.setPosition(1055.f, 390.f);
+    upgradeButton.setFillColor(sf::Color(60, 120, 200));
+    upgradeButton.setOutlineThickness(3);
+    upgradeButton.setOutlineColor(sf::Color::White);
+
+    upgradeButtonText.setFont(font);
+    upgradeButtonText.setCharacterSize(16);
+    upgradeButtonText.setFillColor(sf::Color::White);
+    upgradeButtonText.setStyle(sf::Text::Bold);
+    upgradeButtonText.setString("Upgrade Tower\n80 Gold");
+    upgradeButtonText.setPosition(1080.f, 396.f);
+
+    // Heal button (spend gold to heal castle)
+    healButton.setSize(sf::Vector2f(200.f, 50.f));
+    healButton.setPosition(1055.f, 460.f);
+    healButton.setFillColor(sf::Color(150, 60, 60));
+    healButton.setOutlineThickness(3);
+    healButton.setOutlineColor(sf::Color::White);
+
+    healButtonText.setFont(font);
+    healButtonText.setCharacterSize(16);
+    healButtonText.setFillColor(sf::Color::White);
+    healButtonText.setStyle(sf::Text::Bold);
+    healButtonText.setString("Heal Castle\n100 Gold (+30 HP)");
+    healButtonText.setPosition(1080.f, 466.f);
 
     rangePreview.setRadius(150.f);                           // Archer range default
     rangePreview.setFillColor(sf::Color(0, 255, 0, 50));     // green + low opacity
@@ -99,6 +128,11 @@ UIManager::UIManager(sf::RenderWindow& window): window(window) {
     castleHP    = 100;
     waveRemaining = 0;
     waveTotal = 0;
+
+    upgrading = false;
+    upgradeCost = 80;
+    healCost = 100;
+    healAmount = 30;
 }
 
 void UIManager::render(){
@@ -115,12 +149,19 @@ void UIManager::render(){
     window.draw(goldText);
     window.draw(waveText);
     window.draw(healthText);
+
     window.draw(archerButton);
     window.draw(archerButtonText);
     window.draw(cannonButton);
     window.draw(cannonButtonText);
     window.draw(magicButton);
     window.draw(magicButtonText);
+
+    // new buttons
+    window.draw(upgradeButton);
+    window.draw(upgradeButtonText);
+    window.draw(healButton);
+    window.draw(healButtonText);
 
     // Optionally render small progress text for wave remaining / total
     if (waveTotal > 0) {
@@ -134,7 +175,7 @@ void UIManager::render(){
     }
 
     // When player tries to place a tower, respond to his cursor movement
-    if (placingTowerType != TowerType::None){
+    if (placingTowerType != TowerType::None || upgrading){
 
         // Get pixel coord, convert to real coord
         sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
@@ -144,13 +185,14 @@ void UIManager::render(){
         if (placingTowerType == TowerType::Archer) previewRadius = 150.f;
         if (placingTowerType == TowerType::Cannon) previewRadius = 180.f;
         if (placingTowerType == TowerType::Magic) previewRadius = 160.f;
+        // if upgrading show a small highlight circle
+        if (upgrading) previewRadius = 30.f;
 
         rangePreview.setRadius(previewRadius);
         rangePreview.setOrigin(previewRadius, previewRadius);
         rangePreview.setPosition(worldPos);
 
-    const auto& validPlots = getValidPlots();
-
+        const auto& validPlots = getValidPlots();
 
         bool onValidPlot = false;
         for (const auto& plot : validPlots)
@@ -179,6 +221,7 @@ void UIManager::render(){
 
 void UIManager::handleClick(sf::Vector2f mousePos)
 {
+    // Handle tower-purchase buttons first (unchanged)
     if (archerButton.getGlobalBounds().contains(mousePos) && currentGold >= 50){
         placingTowerType = TowerType::Archer;
         archerButton.setFillColor(sf::Color(100, 200, 100)); // green highlight
@@ -200,13 +243,53 @@ void UIManager::handleClick(sf::Vector2f mousePos)
         return;
     }
 
-    // If placing tower, try to place it
+    // Upgrade button clicked -> enable upgrade mode (next click chooses tower)
+    if (upgradeButton.getGlobalBounds().contains(mousePos)) {
+        if (currentGold >= upgradeCost) {
+            upgrading = !upgrading; // toggle
+            upgradeButton.setFillColor(upgrading ? sf::Color(100,180,250) : sf::Color(60,120,200));
+            cout << (upgrading ? "Upgrade mode ON: Click a tower to upgrade." : "Upgrade mode OFF") << endl;
+        } else {
+            cout << "Not enough gold to upgrade. Need " << upgradeCost << " gold.\n";
+        }
+        return;
+    }
+
+    // Heal button clicked -> immediate heal if enough gold
+    if (healButton.getGlobalBounds().contains(mousePos)) {
+        if (currentGold >= healCost) {
+            addGold(-healCost);
+            if (onHealRequested) onHealRequested(healAmount);
+            cout << "Requested castle heal: +" << healAmount << " HP for " << healCost << " gold.\n";
+        } else {
+            cout << "Not enough gold to heal castle. Need " << healCost << " gold.\n";
+        }
+        return;
+    }
+
+    // If currently upgrading, the next click is interpreted as upgrade target selection.
+    if (upgrading) {
+        // Pass world position back to main (so main can detect which tower was clicked)
+        if (onUpgradeRequest) {
+            onUpgradeRequest(mousePos); // main should handle finding tower at position and performing upgrade
+            // Deduct gold only if main confirms success; but to keep UI responsive, we deduct here
+            // and if main returns failure you can addGold(upgradeCost) back, or instead have main
+            // return bool and only deduct here when successful. For simplicity we'll deduct here
+            // and assume main will perform upgrade.
+            addGold(-upgradeCost);
+            cout << "Upgrade requested at (" << mousePos.x << ", " << mousePos.y << "). Cost: " << upgradeCost << "\n";
+        } else {
+            cout << "[UI] No onUpgradeRequest callback set. Cannot upgrade.\n";
+        }
+        // turn off upgrade mode after request
+        upgrading = false;
+        upgradeButton.setFillColor(sf::Color(60,120,200));
+        return;
+    }
+
+    // If placing tower, try to place it (existing behaviour)
     if (placingTowerType != TowerType::None){
-
-               
-        // ...
         const auto& validPlots = getValidPlots();
-
 
         // Check if clicked on a valid spot
         for (const auto& plot: validPlots){

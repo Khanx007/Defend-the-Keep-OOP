@@ -3,7 +3,7 @@
 #include <iostream>
 
 Brute::Brute(const std::vector<sf::Vector2f>& path)
-    : Enemy(path, 65.f, 200, 30, 50)
+    : Enemy(path, 65.f, 75, 30, 50)
 {
     setAttackRange(120.f);
     setAttackRate(1.8f);

@@ -1,3 +1,4 @@
+// WaveManager.cpp
 #include "WaveManager.hpp"
 #include "Enemy.hpp"
 #include <algorithm>
@@ -20,10 +21,28 @@ WaveManager::WaveManager(std::function<Enemy*(const std::string& type)> spawnFun
 
 void WaveManager::startWave(int waveNum) {
     currentWave = waveNum;
+
+    // --- Wave scaling policy (tweak these numbers for balance) ---
+    // number of enemies
     currentConfig.waveNumber = waveNum;
-    currentConfig.count = 6 + waveNum * 2;
-    currentConfig.spawnInterval = std::max(0.25f, 1.0f - (waveNum * 0.03f));
-    currentConfig.enemySpeedMultiplier = 1.0f + waveNum * 0.05f;
+    // start small, grow faster: formula -> base + wave * growth
+    currentConfig.count = 5 + waveNum * 3; 
+
+    // spawn interval: higher = slower spawns. clamp minimum so it's never too crazy.
+    // Early waves have a comfortable interval, later waves ramp down.
+    currentConfig.spawnInterval = std::max(0.35f, 1.2f - (waveNum * 0.035f));
+
+    // speed multiplier applied to each enemy (calls e->multiplySpeed(...) when spawned)
+    currentConfig.enemySpeedMultiplier = 1.0f + waveNum * 0.06f;
+
+    // (Optionally: you can add other multipliers to the config struct in WaveManager.hpp
+    //  such as enemyHealthMultiplier, enemyDamageMultiplier, enemyAttackRateMultiplier,
+    //  and then apply them in spawn - keep these as comments if your Enemy class lacks
+    //  matching methods.)
+    //
+    // currentConfig.enemyHealthMultiplier = 1.0f + waveNum * 0.12f;
+    // currentConfig.enemyDamageMultiplier = 1.0f + waveNum * 0.08f;
+    // currentConfig.enemyAttackRateMultiplier = std::max(0.6f, 1.0f - waveNum * 0.03f);
 
     enemiesToSpawn = currentConfig.count;
     spawnedCount = 0;
@@ -36,7 +55,9 @@ void WaveManager::startWave(int waveNum) {
     if (onWaveProgress) onWaveProgress(std::max(0, enemiesToSpawn - killedCount), enemiesToSpawn);
 
     if (WAVEMANAGER_DEBUG) {
-        std::cout << "[WaveManager] Started wave " << currentWave << ", count=" << enemiesToSpawn << "\n";
+        std::cout << "[WaveManager] Started wave " << currentWave << ", count=" << enemiesToSpawn
+                  << ", spawnInterval=" << currentConfig.spawnInterval
+                  << ", speedMult=" << currentConfig.enemySpeedMultiplier << "\n";
     }
 }
 
@@ -63,7 +84,11 @@ void WaveManager::update(float dt) {
             if (spawnEnemyFunc) e = spawnEnemyFunc(type);
 
             if (e) {
+                // apply movement speed scaling (this method existed in your code)
                 e->multiplySpeed(currentConfig.enemySpeedMultiplier);
+
+                // NOTE: if you later add multiplyHealth/multiplyDamage etc to Enemy,
+                // apply them here using currentConfig enemy*Multipliers.
             } else {
                 if (WAVEMANAGER_DEBUG) std::cerr << "[WaveManager] spawn returned null for type=" << type << "\n";
             }
@@ -120,3 +145,16 @@ void WaveManager::setInterWaveDelay(float seconds) {
     if (seconds < 0.f) seconds = 0.f;
     interWaveDelay = seconds;
 }
+
+// WaveManager helper: extend inter-wave delay
+void WaveManager::extendInterWaveDelay(float extraSeconds) {
+    if (extraSeconds <= 0.f) return;
+    interWaveDelay += extraSeconds;
+    std::cout << "[WaveManager] Extended inter-wave delay by " << extraSeconds
+              << "s. Now: " << interWaveDelay << "s\n";
+}
+
+float WaveManager::getInterWaveDelay() const {
+    return interWaveDelay;
+}
+

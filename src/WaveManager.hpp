@@ -42,8 +42,13 @@ public:
     int getKilledCount() const;
     int getRemaining() const;
 
-    // Tuning
-    void setInterWaveDelay(float seconds);
+    
+
+    // WaveManager.hpp (add to public section)
+    void extendInterWaveDelay(float extraSeconds); // add extra seconds to the current inter-wave delay
+    void setInterWaveDelay(float seconds);         // set the inter-wave delay to an absolute value
+    float getInterWaveDelay() const;               // read current inter-wave delay
+
 
 private:
     std::function<Enemy*(const std::string& type)> spawnEnemyFunc;

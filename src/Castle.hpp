@@ -16,6 +16,7 @@ public:
 
     // Rendering
     void render(sf::RenderWindow& window) override;
+    void heal(int amount);
 
 private:
     // Sprite + fallback texture in case asset missing
@@ -23,8 +24,8 @@ private:
     sf::Texture fallbackTexture;
 
     // Health
-    int health = 100;
-    int maxHealth = 100;
+    int health = 10000;
+    int maxHealth = 10000;
 
     // draw hp bar
     void drawHealthBar(sf::RenderWindow& window);
