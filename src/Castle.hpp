@@ -1,33 +1,31 @@
 #pragma once
 #include "Entity.hpp"
 #include <SFML/Graphics.hpp>
-#include <string>
 
 class Castle : public Entity {
 public:
     Castle();
 
-    // health
+    // Position helpers are inherited from Entity (setPosition/getPosition)
+
+    // Damage / state
     void takeDamage(int amount) override;
+    bool isAlive() const override;   // required by Enemy/tower logic
     bool isDestroyed() const { return health <= 0; }
-    bool isAlive() const override { return health > 0; }
+    int  getHealth() const { return health; }
 
-    int getHealth() const { return health; }
-
-    // rendering
+    // Rendering
     void render(sf::RenderWindow& window) override;
 
-    // optionally load texture from file; returns true on success
-    bool loadTexture(const std::string& path);
-
 private:
-    sf::Texture texture;
-    sf::RectangleShape healthBarBg;
-    sf::RectangleShape healthBarFg;
+    // Sprite + fallback texture in case asset missing
+    sf::Sprite sprite;
+    sf::Texture fallbackTexture;
 
-    int health = 200;
-    int maxHealth = 200;
+    // Health
+    int health = 100;
+    int maxHealth = 100;
 
-    // visual fallback if texture not loaded
-    sf::CircleShape fallbackShape;
+    // draw hp bar
+    void drawHealthBar(sf::RenderWindow& window);
 };

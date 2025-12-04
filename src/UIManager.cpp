@@ -13,7 +13,7 @@ static float length(const sf::Vector2f& v) {
 UIManager::UIManager(sf::RenderWindow& window): window(window) {
 
     //Load arial font
-    if(!font.loadFromFile("arial.TTF")){
+    if(!font.loadFromFile("assets/fonts/arial.ttf")){
         cerr<< "ERROR: could not load the font" << endl;
     }
 

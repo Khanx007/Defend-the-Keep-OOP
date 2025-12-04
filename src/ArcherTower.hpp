@@ -18,4 +18,6 @@ private:
     sf::CircleShape shape;
     sf::CircleShape turret;
     std::vector<Projectile*> projectiles;
+    sf::Sprite towerSprite;
+
 };

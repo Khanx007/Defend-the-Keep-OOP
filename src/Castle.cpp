@@ -1,68 +1,72 @@
 #include "Castle.hpp"
+#include "AssetManager.hpp"   // ensure you have AssetManager that loads textures
 #include <iostream>
 
 Castle::Castle() {
-    // try to load a castle texture (if you have one named "castle.png" in working dir)
-    bool texLoaded = false;
-    if (texture.loadFromFile("castle.png")) {
-        sprite.setTexture(texture);
-        sprite.setOrigin(sprite.getGlobalBounds().width / 2.f, sprite.getGlobalBounds().height / 2.f);
-        texLoaded = true;
+    // Try to get 'castle' texture from AssetManager (should be loaded in main)
+    sf::Texture& tex = AssetManager::getTexture("castle");
+
+    if (tex.getSize().x == 0 || tex.getSize().y == 0) {
+        // AssetManager returned an empty texture -> use fallback
+        std::cerr << "[Castle] Warning: castle texture not found, using fallback.\n";
+        // Create a simple grey fallback image (64x64)
+        fallbackTexture.create(64, 64);
+        sf::Image img;
+        img.create(64, 64, sf::Color(150,150,150));
+        fallbackTexture.update(img);
+        sprite.setTexture(fallbackTexture);
     } else {
-        // fallback: simple circle to represent castle
-        fallbackShape.setRadius(40.f);
-        fallbackShape.setOrigin(40.f, 40.f);
-        fallbackShape.setFillColor(sf::Color(120, 120, 120));
+        sprite.setTexture(tex);
     }
 
-    // Setup health bar visuals
-    healthBarBg.setSize({120.f, 12.f});
-    healthBarBg.setFillColor(sf::Color(80, 20, 20));
-    healthBarBg.setOrigin(60.f, 6.f);
+    // Center origin so position corresponds to center
+    sf::Vector2u size = sprite.getTexture() ? sprite.getTexture()->getSize() : fallbackTexture.getSize();
+    sprite.setOrigin(float(size.x)/2.f, float(size.y)/2.f);
 
-    healthBarFg.setSize({120.f, 12.f});
-    healthBarFg.setFillColor(sf::Color::Green);
-    healthBarFg.setOrigin(60.f, 6.f);
+    // Scale to a reasonable on-screen width (tweak if required)
+    const float desiredWidth = 140.f; // px on screen
+    float scale = desiredWidth / float(size.x);
+    if (scale <= 0.f) scale = 1.f;
+    sprite.setScale(scale, scale);
 
-    // default starting position (can be overridden by caller)
+    // Default position -- caller will setPosition as needed
     position = {980.f, 360.f};
     sprite.setPosition(position);
-    fallbackShape.setPosition(position);
-    healthBarBg.setPosition(position);
-    healthBarFg.setPosition(position);
-}
 
-bool Castle::loadTexture(const std::string& path) {
-    if (texture.loadFromFile(path)) {
-        sprite.setTexture(texture);
-        sprite.setOrigin(sprite.getGlobalBounds().width / 2.f, sprite.getGlobalBounds().height / 2.f);
-        return true;
-    }
-    return false;
+    maxHealth = 100;
+    health = maxHealth;
 }
 
 void Castle::takeDamage(int amount) {
+    if (amount <= 0) return;
     health -= amount;
     if (health < 0) health = 0;
+}
 
-    // update health bar fg width
-    float pct = (maxHealth > 0) ? (float)health / (float)maxHealth : 0.f;
-    healthBarFg.setSize({120.f * pct, 12.f});
+bool Castle::isAlive() const {
+    return health > 0;
+}
+
+void Castle::drawHealthBar(sf::RenderWindow& window) {
+    const float barWidth = 160.f;
+    const float barHeight = 10.f;
+    sf::RectangleShape bg(sf::Vector2f(barWidth, barHeight));
+    bg.setFillColor(sf::Color(40,40,40,220));
+    bg.setPosition(position.x - barWidth/2.f, position.y - 90.f);
+
+    float pct = float(health) / float(maxHealth);
+    if (pct < 0.f) pct = 0.f;
+    sf::RectangleShape fg(sf::Vector2f(barWidth * pct, barHeight));
+    fg.setFillColor(sf::Color::Green);
+    fg.setPosition(position.x - barWidth/2.f, position.y - 90.f);
+
+    window.draw(bg);
+    window.draw(fg);
 }
 
 void Castle::render(sf::RenderWindow& window) {
-    // draw sprite or fallback
-    if (sprite.getTexture()) {
-        sprite.setPosition(position);
-        window.draw(sprite);
-    } else {
-        fallbackShape.setPosition(position);
-        window.draw(fallbackShape);
-    }
-
-    // draw health bar above castle
-    healthBarBg.setPosition(position.x, position.y - 60.f);
-    healthBarFg.setPosition(position.x - (120.f * (1.0f - (float)health / maxHealth)) / 2.f, position.y - 60.f);
-    window.draw(healthBarBg);
-    window.draw(healthBarFg);
+    // ensure sprite follows position
+    sprite.setPosition(position);
+    window.draw(sprite);
+    drawHealthBar(window);
 }

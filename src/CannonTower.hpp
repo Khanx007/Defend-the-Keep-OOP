@@ -16,4 +16,6 @@ private:
     sf::CircleShape base;
     sf::CircleShape barrel;
     std::vector<Projectile*> projectiles;
+    sf::Sprite towerSprite;
+
 };

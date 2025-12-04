@@ -8,4 +8,6 @@ public:
 
 private:
     sf::CircleShape shape;
+    sf::Sprite sprite;
+
 };

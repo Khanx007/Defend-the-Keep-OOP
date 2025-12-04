@@ -54,4 +54,8 @@ protected:
     float lifetimeSeconds = 0.f;    // 0 = infinite; >0 = lifetime
     float lifetimeTimer = 0.f;
     float fireCooldown    = 0.f;
+
+    // in Tower class (private or protected)
+    sf::Sprite sprite;
+
 };

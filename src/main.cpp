@@ -21,6 +21,10 @@
 #include "ArcherTower.hpp"
 #include "CannonTower.hpp"
 #include "MageTower.hpp"
+#include "AssetManager.hpp"
+#include "AudioManager.hpp"
+
+
 
 using namespace std;
 
@@ -44,14 +48,46 @@ sf::Font globalFont; // small font used by menu/end screens
 
 int main()
 {
+
+   // === Textures (adjust filenames/case if yours differ) ===
+    AssetManager::loadTexture("archer_tower", "assets/sprites/archer_tower.png");
+    AssetManager::loadTexture("arrow",        "assets/sprites/arrow.png");
+    AssetManager::loadTexture("brute",        "assets/sprites/brute.png");
+    AssetManager::loadTexture("cannon_tower", "assets/sprites/cannon_tower.png");
+    AssetManager::loadTexture("cannonball",   "assets/sprites/cannonball.png");
+    AssetManager::loadTexture("castle",       "assets/sprites/castle.png");
+    AssetManager::loadTexture("grunt",        "assets/sprites/grunt.jpg");      // you had grunt.jpg
+    AssetManager::loadTexture("mage_tower",   "assets/sprites/mage_tower.png");
+    AssetManager::loadTexture("magicbolt",    "assets/sprites/magicbolt.png");
+    AssetManager::loadTexture("scout",        "assets/sprites/scout.png");
+
+    // (Optional) spritesheet textures
+    AssetManager::loadTexture("grunt_walk",   "assets/spritesheets/grunt_walk.png");
+
+    // === Fonts ===
+    AssetManager::loadFont("arial", "assets/fonts/arial.ttf");
+
+    // === SFX ===
+    AudioManager::loadSFX("shoot_arrow", "assets/sfx/shoot_arrow.ogg");
+    AudioManager::loadSFX("explosion",   "assets/sfx/explosion.wav");
+    AudioManager::loadSFX("enemy_hit",   "assets/sfx/enemy_hit.wav");    // change names to what you have
+    AudioManager::loadSFX("castle_hit",  "assets/sfx/castle_hit.wav");
+
+    // === BGM (AudioManager.playBGM opens directly by filename) ===
+    AudioManager::playBGM("assets/music/bgm_loop.wav", true, 35.f);
+
+
+
+
+
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Defend The Keep - Enemy Test");
     window.setFramerateLimit(60);
 
     UIManager ui(window);
 
     // Load font for menu and gameover text. We assume "arial.TTF" exists in working dir (UIManager already uses it).
-    if (!globalFont.loadFromFile("arial.TTF")) {
-        std::cerr << "Warning: menu font not loaded (arial.TTF)\n";
+    if (!globalFont.loadFromFile("assets/fonts/arial.ttf")) {
+        std::cerr << "Warning: menu font not loaded (assets/fonts/arial.ttf)\n";
     }
 
     // Title
@@ -160,6 +196,9 @@ int main()
     Castle castle;
     castle.setPosition({980.f, 360.f}); // make sure matches path end
 
+    int prevCastleHP = castle.getHealth();
+
+
     // ===== WaveManager spawn function =====
     // corrected spawnFunc — captures castle too
     std::function<Enemy*(const std::string&)> spawnFunc =
@@ -179,6 +218,9 @@ int main()
                 // projectile spawner
                 e->setProjectileSpawner([&enemyProjectiles](Enemy* self, sf::Vector2f origin, Entity* target, int damage) {
                     enemyProjectiles.push_back(new EnemyProjectile(origin, target, 300.f, damage));
+
+                    // Play sfx audio
+                    AudioManager::playSFX("shoot_arrow", 80.f);
                 });
 
                 // fallback = castle
@@ -482,6 +524,7 @@ int main()
                     int goldGained = e->getGoldValue();
                     cout << "Enemy died! Gained " << goldGained << " gold" << endl;
                     ui.addGold(goldGained);
+                    AudioManager::playSFX("enemy_hit", 85.f);
 
                     // increment enemy killed stat
                     enemiesEliminatedCount++;
@@ -511,6 +554,14 @@ int main()
                     continue;
                 }
             }
+
+            // detect castle damage and play SFX once per hit
+            int currCastleHP = castle.getHealth();
+            if (currCastleHP < prevCastleHP) {
+                AudioManager::playSFX("castle_hit", 90.f);
+                prevCastleHP = currCastleHP;
+            }
+
 
             // Check for game over (castle destroyed)
             if (castle.isDestroyed()) {
