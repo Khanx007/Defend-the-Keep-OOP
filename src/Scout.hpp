@@ -1,5 +1,5 @@
 #pragma once
-#include "Enemy.hpp"
+#include "Enemy.h"
 
 class Scout : public Enemy {
 public:
@@ -7,6 +7,5 @@ public:
     void render(sf::RenderWindow& window) override;
 
 private:
-    sf::Sprite sprite;
-
+    sf::CircleShape shape;
 };

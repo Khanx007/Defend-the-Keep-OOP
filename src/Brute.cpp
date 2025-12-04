@@ -1,27 +1,24 @@
-#include "Brute.hpp"
-#include "AssetManager.hpp"
-#include <iostream>
+#include "Brute.h"
 
 Brute::Brute(const std::vector<sf::Vector2f>& path)
-    : Enemy(path, 65.f, 75, 30, 50)
+    : Enemy(path, 
+            65.0f,     // speed (slow)
+            200,       // health (high)
+            30,        // damage to castle
+            50)        // gold value
 {
-    setAttackRange(120.f);
-    setAttackRate(1.8f);
-    setAttackDamage(10);
-
-    sf::Texture& tex = AssetManager::getTexture("brute");
-    sprite.setTexture(tex);
-
-    sf::Vector2u s = tex.getSize();
-    sprite.setOrigin(s.x/2, s.y/2);
-    sprite.setScale(0.14f, 0.14f);
-
-    sprite.setPosition(position);
+    // Create visual representation - dark gray circle (bigger)
+    shape.setRadius(25.0f);
+    shape.setFillColor(sf::Color(50, 50, 50)); // Dark gray
+    shape.setOrigin(25.0f, 25.0f);
+    shape.setPosition(position);
 }
 
-void Brute::render(sf::RenderWindow& window)
-{
-    sprite.setPosition(position);
-    window.draw(sprite);
+void Brute::render(sf::RenderWindow& window) {
+    // Update shape position to match entity position
+    shape.setPosition(position);
+    window.draw(shape);
+    
+    // Draw health bar
     Enemy::render(window);
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "Enemy.hpp"
+#include "Enemy.h"
 
 class Grunt : public Enemy {
 public:

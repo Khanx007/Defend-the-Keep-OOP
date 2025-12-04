@@ -1,27 +1,24 @@
-#include "Scout.hpp"
-#include "AssetManager.hpp"
-#include <iostream>
+#include "Scout.h"
 
 Scout::Scout(const std::vector<sf::Vector2f>& path)
-    : Enemy(path, 75.f, 20, 15, 25)
+    : Enemy(path, 
+            75.0f, // speed (very fast)
+            30,// health (very low)
+            15,// damage to castle
+            25)// gold value
 {
-    setAttackRange(120.f);
-    setAttackRate(0.8f);
-    setAttackDamage(10);
-
-    sf::Texture& tex = AssetManager::getTexture("scout");
-    sprite.setTexture(tex);
-
-    sf::Vector2u s = tex.getSize();
-    sprite.setOrigin(s.x/2, s.y/2);
-    sprite.setScale(0.14f, 0.14f);
-
-    sprite.setPosition(position);
+    // Create visual representation - cyan circle (smaller)
+    shape.setRadius(12.0f);
+    shape.setFillColor(sf::Color::Cyan);
+    shape.setOrigin(12.0f, 12.0f);
+    shape.setPosition(position);
 }
 
-void Scout::render(sf::RenderWindow& window)
-{
-    sprite.setPosition(position);
-    window.draw(sprite);
+void Scout::render(sf::RenderWindow& window) {
+    // Update shape position to match entity position
+    shape.setPosition(position);
+    window.draw(shape);
+    
+    // Draw health bar
     Enemy::render(window);
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "Enemy.hpp"
+#include "Enemy.h"
 
 class Brute : public Enemy {
 public:
@@ -8,6 +8,4 @@ public:
 
 private:
     sf::CircleShape shape;
-    sf::Sprite sprite;
-
 };
