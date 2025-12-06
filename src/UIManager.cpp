@@ -98,7 +98,7 @@ UIManager::UIManager(sf::RenderWindow& window): window(window) {
     upgradeButtonText.setCharacterSize(16);
     upgradeButtonText.setFillColor(sf::Color::White);
     upgradeButtonText.setStyle(sf::Text::Bold);
-    upgradeButtonText.setString("Upgrade Tower\n80 Gold");
+    upgradeButtonText.setString("Upgrade Tower");
     upgradeButtonText.setPosition(1080.f, 396.f);
 
     // Heal button (spend gold to heal castle)
@@ -112,7 +112,7 @@ UIManager::UIManager(sf::RenderWindow& window): window(window) {
     healButtonText.setCharacterSize(16);
     healButtonText.setFillColor(sf::Color::White);
     healButtonText.setStyle(sf::Text::Bold);
-    healButtonText.setString("Heal Castle\n100 Gold (+30 HP)");
+    healButtonText.setString("Heal Castle\n100 Gold (+60 HP)");
     healButtonText.setPosition(1080.f, 466.f);
 
     rangePreview.setRadius(150.f);                           // Archer range default
@@ -122,17 +122,17 @@ UIManager::UIManager(sf::RenderWindow& window): window(window) {
     rangePreview.setOrigin(150.f, 150.f);                    // center of circle
     rangePreview.setPosition(-9999.f, -9999.f);              // hide off-screen initially
 
-    // initial values (you had assigned 20000 in previous file; pick your starting gold)
-    currentGold = 200;
+     
+    currentGold = 700;
     currentWave = 1;
     castleHP    = 100;
     waveRemaining = 0;
     waveTotal = 0;
 
     upgrading = false;
-    upgradeCost = 80;
+    upgradeCost = 120;
     healCost = 100;
-    healAmount = 30;
+    healAmount = 60;
 }
 
 void UIManager::render(){
@@ -148,7 +148,7 @@ void UIManager::render(){
     // Draw HUD elements & tower buttons/label
     window.draw(goldText);
     window.draw(waveText);
-    window.draw(healthText);
+    // window.draw(healthText);
 
     window.draw(archerButton);
     window.draw(archerButtonText);
@@ -358,7 +358,7 @@ void UIManager::setWave(int wave) {
 void UIManager::setWaveProgress(int remaining, int total) {
     waveRemaining = remaining;
     waveTotal = total;
-    // Optionally update a small text field — render() draws remaining if waveTotal>0
+    
 }
 
 void UIManager::updateCastleHealth(int hp){

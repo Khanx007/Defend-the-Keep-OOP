@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
+
 using namespace std;
 
 // Helper function to calculate distance between two points
@@ -211,3 +212,24 @@ void Enemy::multiplySpeed(float mult) {
     if (mult <= 0.0f) return;
     speed *= mult;
 }
+
+
+
+
+// Multiply health (maxHealth and current health)
+void Enemy::multiplyHealth(float mult) {
+    if (mult <= 0.0f) return;
+    // use round to avoid truncation drift
+    int newMax = std::max(1, (int)std::round(maxHealth * mult));
+    int newHealth = std::max(1, (int)std::round(health * mult));
+    maxHealth = newMax;
+    health = newHealth;
+}
+
+// Multiply damage value
+void Enemy::multiplyDamage(float mult) {
+    if (mult <= 0.0f) return;
+    int newDmg = std::max(1, (int)std::round(damage * mult));
+    damage = newDmg;
+}
+

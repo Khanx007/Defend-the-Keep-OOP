@@ -16,7 +16,3 @@ void Arrow::render(sf::RenderWindow& window) {
     window.draw(shape);
 }
 
-int main(){
-    cout << "test"; 
-    return 0;
-}

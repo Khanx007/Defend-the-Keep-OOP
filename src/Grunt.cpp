@@ -6,9 +6,9 @@
 Grunt::Grunt(const std::vector<sf::Vector2f>& path)
     : Enemy(path,
             50.0f,    // speed (medium)
-            50,       // health (low)
-            10,       // damage to castle
-            10)       // gold value
+            110,       // health (low)
+            14,       // damage to castle
+            20)       // gold value
 {
     // Attack configuration (keeps previous behavior)
     setAttackRange(120.f);   // grunt fires from ~120 px away

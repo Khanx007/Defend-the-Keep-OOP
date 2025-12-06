@@ -65,7 +65,7 @@ private:
 
     sf::CircleShape    rangePreview;
 
-    int currentGold = 200;
+    int currentGold = 400;
     int currentWave = 1;
     int castleHP    = 100;
 

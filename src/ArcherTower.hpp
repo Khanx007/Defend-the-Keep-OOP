@@ -20,7 +20,7 @@ public:
         return out;
     }
 
-    // If you absolutely need access to the owning container (use sparingly).
+    // If we  need  to access to the owning container (use sparingly).
     std::vector<std::unique_ptr<Projectile>>& getProjectilesOwned() { return projectiles; }
 
 private:

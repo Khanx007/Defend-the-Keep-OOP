@@ -93,7 +93,6 @@ bool Tower::isActive() const {
     return active;
 }
 
-// ----------------- NEW/UPDATED METHODS -----------------
 
 // Update: handle activation delay, lifetime countdown, and maintain visual state.
 // Note: actual firing/targeting is intended to be implemented in derived classes' update().
@@ -132,30 +131,12 @@ void Tower::baseUpdate(float dt)
 }
 
 
-// void Tower::setLifetime(float seconds) {
-//     if (seconds <= 0.0f) {
-//         lifetimeSeconds = 0.0f;
-//         lifetimeTimer = 0.0f;
-//     } else {
-//         lifetimeSeconds = seconds;
-//         lifetimeTimer = seconds;
-//     }
-// }
-
-// bool Tower::isExpired() const {
-//     return (lifetimeSeconds > 0.0f) && (lifetimeTimer <= 0.0f);
-// }
-
-
-
-// Tower.cpp (add these functions)
-
 
 
 int Tower::getUpgradeCost() const {
-    // baseUpgradeCost should be a member (e.g. 60). If not present, adjust accordingly.
+    // baseUpgradeCost should be a member (e.g. 120). If not present, adjust accordingly.
     // Provide fallback if baseUpgradeCost not set.
-    int base = (baseUpgradeCost > 0) ? baseUpgradeCost : 60;
+    int base = (baseUpgradeCost > 0) ? baseUpgradeCost : 120;
     if (upgradeLevel == 0) return base;
     if (upgradeLevel == 1) return static_cast<int>(base * 1.8f);
     if (upgradeLevel == 2) return static_cast<int>(base * 2.8f);
@@ -169,16 +150,10 @@ bool Tower::upgrade() {
         return false;
     }
 
-    // you mentioned the UI will check/deduct gold before calling upgrade.
-    // If you prefer tower to check gold itself, pass gold ref or query UI; keep simple here.
-
     upgradeLevel++;
     startActivation(30.f);
 
-    // Example stat improvements per upgrade level:
-    // - Increase max HP by +30%
-    // - Increase damage by +25%
-    // - Decrease fireRate (faster firing) by 10% (fireRate is seconds per shot)
+    
     maxHp = static_cast<int>(std::max(1.0f, float(maxHp) * 1.3f));
     // restore some HP on upgrade (heal up to 30% of new max)
     int healAmount = static_cast<int>(maxHp * 0.3f);

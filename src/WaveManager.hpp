@@ -11,6 +11,8 @@ struct WaveConfig {
     int count = 0;
     float spawnInterval = 1.0f;
     float enemySpeedMultiplier = 1.0f;
+    float enemyHealthMultiplier = 1.0f;
+    float enemyDamageMultiplier = 1.0f;
 };
 
 class WaveManager {

@@ -3,6 +3,8 @@
 #include <SFML/System.hpp>
 #include <vector>
 
+
+// In this file, we set the tower placement squares
 inline const std::vector<sf::Vector2f>& getValidPlots() {
     static std::vector<sf::Vector2f> plots = {
         {200, 100}, {400, 100}, {600, 100}, {800, 100}, {1000,200},

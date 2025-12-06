@@ -70,6 +70,6 @@ protected:
     sf::Sprite sprite;
 
     int upgradeLevel = 0;
-    int baseUpgradeCost  = 60;
+    int baseUpgradeCost  = 120;
 
 };

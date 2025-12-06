@@ -24,8 +24,8 @@ private:
     sf::Texture fallbackTexture;
 
     // Health
-    int health = 10000;
-    int maxHealth = 10000;
+    int health = 500;
+    int maxHealth = 500;
 
     // draw hp bar
     void drawHealthBar(sf::RenderWindow& window);

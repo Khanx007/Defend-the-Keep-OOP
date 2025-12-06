@@ -1,5 +1,5 @@
 #include "Castle.hpp"
-#include "AssetManager.hpp"   // ensure you have AssetManager that loads textures
+#include "AssetManager.hpp"   
 #include <iostream>
 
 Castle::Castle() {
@@ -33,7 +33,7 @@ Castle::Castle() {
     position = {980.f, 360.f};
     sprite.setPosition(position);
 
-    maxHealth = 100;
+    maxHealth = 1000;
     health = maxHealth;
 }
 
@@ -72,7 +72,6 @@ void Castle::render(sf::RenderWindow& window) {
 }
 
 
-// Add these to Castle.cpp (below takeDamage / isAlive)
 
 void Castle::heal(int amount) {
     if (amount <= 0) return;
