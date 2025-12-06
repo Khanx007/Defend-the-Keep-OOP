@@ -24,13 +24,61 @@
 #include "MageTower.hpp"
 #include "AssetManager.hpp"
 #include "AudioManager.hpp"
+//file saving/loading
+#include <fstream>
+//for sorting  
+#include <algorithm> 
 
 using namespace std;
+// ----- LEADERBOARD SYSTEM -----
+struct HighScore {
+    int waves;
+    int kills;
+    int defenses;
+};
 
+// Sorts by Wave (descending), then Kills (descending)
+bool compareScores(const HighScore& a, const HighScore& b) {
+    if (a.waves != b.waves) return a.waves > b.waves;
+    return a.kills > b.kills;
+}
+
+std::vector<HighScore> loadLeaderboard(const std::string& filename) {
+    std::vector<HighScore> scores;
+    std::ifstream file(filename);
+    if (file.is_open()) {
+        HighScore temp;
+        while (file >> temp.waves >> temp.kills >> temp.defenses) {
+            scores.push_back(temp);
+        }
+        file.close();
+    }
+    return scores;
+}
+
+void saveLeaderboard(const std::string& filename, std::vector<HighScore>& scores) {
+    // 1. Sort
+    std::sort(scores.begin(), scores.end(), compareScores);
+    
+    // 2. Keep only top 5
+    if (scores.size() > 5) {
+        scores.resize(5);
+    }
+
+    // 3. Save to file
+    std::ofstream file(filename);
+    if (file.is_open()) {
+        for (const auto& s : scores) {
+            file << s.waves << " " << s.kills << " " << s.defenses << "\n";
+        }
+        file.close();
+    }
+}
 // ----- GAME STATE & STATS -----
 enum class GameState { MENU, PLAYING, GAMEOVER };
 GameState gameState = GameState::MENU;
-
+bool isScoreSaved = false; // Flag to prevent multi-saving
+std::vector<HighScore> highScores; // To store loaded scores
 int enemiesEliminatedCount = 0;
 int defensesPlacedCount = 0;
 int wavesSurvived = 0;
@@ -303,6 +351,7 @@ int main()
                     // Start button
                     if (buttonStartRect.getGlobalBounds().contains(worldPos)) {
                         // Reset stats & clear world (just in case)
+                        isScoreSaved = false;
                         enemiesEliminatedCount = 0;
                         defensesPlacedCount = 0;
                         wavesSurvived = 0;
@@ -328,6 +377,7 @@ int main()
                     // Restart button
                     if (buttonRestartRect.getGlobalBounds().contains(worldPos)) {
                         // Reset and restart
+                        isScoreSaved = false;
                         enemiesEliminatedCount = 0;
                         defensesPlacedCount = 0;
                         wavesSurvived = 0;
@@ -568,12 +618,25 @@ int main()
                 AudioManager::playSFX("castle_hit", 90.f);
                 prevCastleHP = currCastleHP;
             }
-
             // Check for game over (castle destroyed)
             if (castle.isDestroyed()) {
                 gameState = GameState::GAMEOVER;
                 wavesSurvived = currentWaveLocal;
-                std::cout << "[Main] GAME OVER. Waves survived: " << wavesSurvived << "\n";
+                
+                // SAVE LEADERBOARD LOGIC
+                if (!isScoreSaved) {
+                    // 1. Load existing
+                    highScores = loadLeaderboard("leaderboard.txt");
+                    
+                    // 2. Add current run
+                    highScores.push_back({wavesSurvived, enemiesEliminatedCount, defensesPlacedCount});
+                    
+                    // 3. Save back to file (this function sorts and trims to top 5)
+                    saveLeaderboard("leaderboard.txt", highScores);
+                    
+                    isScoreSaved = true; // Lock it so we don't save again this session
+                    std::cout << "[Main] GAME OVER. Score saved.\n";
+                }
             }
         } // end PLAYING update
 
@@ -627,6 +690,29 @@ int main()
 
             window.draw(buttonRestartRect);
             window.draw(buttonRestartText);
+        }
+        //LeaderBoard
+        sf::Text lbTitle("Top 5 Runs:", globalFont, 24);
+        lbTitle.setFillColor(sf::Color::Yellow);
+        lbTitle.setPosition(800.f, 160.f);
+        window.draw(lbTitle);
+
+        //Header
+        sf::Text lbHeader("Wave  |  Kills  |  Defenses", globalFont, 18);
+        lbHeader.setFillColor(sf::Color(200, 200, 200));
+        lbHeader.setPosition(800.f, 200.f);
+        window.draw(lbHeader);
+        float yOffset = 230.f;
+        for (const auto& s : highScores) {
+            std::string row = std::to_string(s.waves) + "         " + 
+                            std::to_string(s.kills) + "         " + 
+                            std::to_string(s.defenses);
+            
+            sf::Text lbRow(row, globalFont, 18);
+            lbRow.setFillColor(sf::Color::White);
+            lbRow.setPosition(800.f, yOffset);
+            window.draw(lbRow);
+            yOffset += 25.f;
         }
 
         window.display();
