@@ -15,3 +15,8 @@ void Arrow::render(sf::RenderWindow& window) {
     shape.setPosition(position);
     window.draw(shape);
 }
+
+int main(){
+    cout << "test"; 
+    return 0;
+}
