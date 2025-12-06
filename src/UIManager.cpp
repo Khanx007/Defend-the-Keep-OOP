@@ -358,7 +358,7 @@ void UIManager::setWave(int wave) {
 void UIManager::setWaveProgress(int remaining, int total) {
     waveRemaining = remaining;
     waveTotal = total;
-    
+    // Optionally update a small text field — render() draws remaining if waveTotal>0
 }
 
 void UIManager::updateCastleHealth(int hp){

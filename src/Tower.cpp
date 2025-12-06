@@ -93,6 +93,7 @@ bool Tower::isActive() const {
     return active;
 }
 
+// ----------------- NEW/UPDATED METHODS -----------------
 
 // Update: handle activation delay, lifetime countdown, and maintain visual state.
 // Note: actual firing/targeting is intended to be implemented in derived classes' update().
@@ -131,6 +132,24 @@ void Tower::baseUpdate(float dt)
 }
 
 
+// void Tower::setLifetime(float seconds) {
+//     if (seconds <= 0.0f) {
+//         lifetimeSeconds = 0.0f;
+//         lifetimeTimer = 0.0f;
+//     } else {
+//         lifetimeSeconds = seconds;
+//         lifetimeTimer = seconds;
+//     }
+// }
+
+// bool Tower::isExpired() const {
+//     return (lifetimeSeconds > 0.0f) && (lifetimeTimer <= 0.0f);
+// }
+
+
+
+// Tower.cpp (add these functions)
+
 
 
 int Tower::getUpgradeCost() const {
@@ -149,6 +168,9 @@ bool Tower::upgrade() {
         std::cout << "[Tower] Already at max upgrade level\n";
         return false;
     }
+
+    // you mentioned the UI will check/deduct gold before calling upgrade.
+    // If you prefer tower to check gold itself, pass gold ref or query UI; keep simple here.
 
     upgradeLevel++;
     startActivation(30.f);

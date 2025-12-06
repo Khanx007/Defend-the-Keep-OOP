@@ -47,6 +47,7 @@ public:
     bool isCountedByWave() const { return countedByWave; }
     void markCountedByWave() { countedByWave = true; }
 
+    // in Enemy.hpp (public)
     using EnemyProjectileSpawner = std::function<void(Enemy*, sf::Vector2f, Entity*, int)>;
 
 // Set the enemy projectile spawn callback so enemies can create projectiles without knowing game containers
@@ -91,6 +92,7 @@ protected:
     std::function<void(class Enemy*, sf::Vector2f, Entity*, int)> spawnEnemyProjectileFn;
 
     // spawnEnemyProjectileFn(this, originPos, target, damage) must create projectile
+    // in public (or protected) of Enemy.hpp
     std::function<void(Enemy*)> onDeathCallback;
 
     Entity* fallbackTarget = nullptr;

@@ -23,7 +23,7 @@ WaveManager::WaveManager(std::function<Enemy*(const std::string& type)> spawnFun
 void WaveManager::startWave(int waveNum) {
     currentWave = waveNum;
 
-    // --- Wave scaling policy  ---
+    // --- Wave scaling policy (tweak these numbers for balance) ---
     // number of enemies
     currentConfig.waveNumber = waveNum;
     // start small, grow faster: formula -> base + wave * growth

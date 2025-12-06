@@ -1,5 +1,5 @@
 #include "Castle.hpp"
-#include "AssetManager.hpp"   
+#include "AssetManager.hpp"   // ensure you have AssetManager that loads textures
 #include <iostream>
 
 Castle::Castle() {
