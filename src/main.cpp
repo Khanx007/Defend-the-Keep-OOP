@@ -31,46 +31,45 @@
 #include <algorithm> 
 
 using namespace std;
-// ----- LEADERBOARD SYSTEM -----
+// ----- LEADERBOARD STRUCTURE -----
 struct HighScore {
     int waves;
-    int kills;
-    int defenses;
+    int goldEarned; // Tracks TOTAL gold earned, not current balance
 };
 
-// Sorts by Wave (descending), then Kills (descending)
+// Sort by Waves (highest first), then Gold (highest first)
 bool compareScores(const HighScore& a, const HighScore& b) {
     if (a.waves != b.waves) return a.waves > b.waves;
-    return a.kills > b.kills;
+    return a.goldEarned > b.goldEarned;
 }
 
-std::vector<HighScore> loadLeaderboard(const std::string& filename) {
+// Load from "leaderboard.txt"
+std::vector<HighScore> loadLeaderboard() {
     std::vector<HighScore> scores;
-    std::ifstream file(filename);
+    std::ifstream file("leaderboard.txt");
     if (file.is_open()) {
         HighScore temp;
-        while (file >> temp.waves >> temp.kills >> temp.defenses) {
+        while (file >> temp.waves >> temp.goldEarned) {
             scores.push_back(temp);
         }
         file.close();
     }
+    // Always sort after loading
+    std::sort(scores.begin(), scores.end(), compareScores);
     return scores;
 }
 
-void saveLeaderboard(const std::string& filename, std::vector<HighScore>& scores) {
-    // 1. Sort
+// Save to "leaderboard.txt"
+void saveLeaderboard(std::vector<HighScore>& scores) {
     std::sort(scores.begin(), scores.end(), compareScores);
     
-    // 2. Keep only top 5
-    if (scores.size() > 5) {
-        scores.resize(5);
-    }
+    // Keep top 5 only
+    if (scores.size() > 5) scores.resize(5);
 
-    // 3. Save to file
-    std::ofstream file(filename);
+    std::ofstream file("leaderboard.txt");
     if (file.is_open()) {
         for (const auto& s : scores) {
-            file << s.waves << " " << s.kills << " " << s.defenses << "\n";
+            file << s.waves << " " << s.goldEarned << "\n";
         }
         file.close();
     }
@@ -81,9 +80,11 @@ GameState gameState = GameState::MENU;
 bool isScoreSaved = false; // Flag to prevent multi-saving
 std::vector<HighScore> highScores; // To store loaded scores
 int enemiesEliminatedCount = 0;
+int totalGoldEarnedSession = 0; // Tracks gross income
 int defensesPlacedCount = 0;
 int wavesSurvived = 0;
 int currentWaveLocal = 0;
+std::vector<HighScore> leaderboard = loadLeaderboard();
 
 // UI elements for menu / endscreen (we create them in main())
 sf::Text titleText;
@@ -365,6 +366,8 @@ int main()
                         defensesPlacedCount = 0;
                         wavesSurvived = 0;
                         currentWaveLocal = 0;
+                        totalGoldEarnedSession = 0; 
+                        isScoreSaved = false;
 
                         for (auto* e : enemies) delete e;
                         enemies.clear();
@@ -390,6 +393,8 @@ int main()
                         defensesPlacedCount = 0;
                         wavesSurvived = 0;
                         currentWaveLocal = 0;
+                        totalGoldEarnedSession = 0; 
+                        isScoreSaved = false;
 
                         for (auto* e : enemies) delete e;
                         enemies.clear();
@@ -606,6 +611,7 @@ int main()
                     cout << "Enemy died! Gained " << goldGained << " gold" << endl;
                     ui.addGold(goldGained);
                     // ui.addGold(150);
+                    totalGoldEarnedSession += goldGained;
                     AudioManager::playSFX("enemy_hit", 85.f);
 
                     enemiesEliminatedCount++;
@@ -645,17 +651,20 @@ int main()
                 
                 // SAVE LEADERBOARD LOGIC
                 if (!isScoreSaved) {
-                    // 1. Load existing
-                    highScores = loadLeaderboard("leaderboard.txt");
+                    leaderboard = loadLeaderboard(); 
                     
-                    // 2. Add current run
-                    highScores.push_back({wavesSurvived, enemiesEliminatedCount, defensesPlacedCount});
+                    // 2. Add current run (Waves AND Total Gold only)
+                    // Ensure you have 'totalGoldEarnedSession' defined in main() variables!
+                    leaderboard.push_back({wavesSurvived, totalGoldEarnedSession});
                     
-                    // 3. Save back to file (this function sorts and trims to top 5)
-                    saveLeaderboard("leaderboard.txt", highScores);
+                    // 3. Save to file (NO ARGUMENTS needed now)
+                    saveLeaderboard(leaderboard);
                     
-                    isScoreSaved = true; // Lock it so we don't save again this session
-                    std::cout << "[Main] GAME OVER. Score saved.\n";
+                    // 4. Reload to update the list in memory immediately
+                    leaderboard = loadLeaderboard();
+                    
+                    isScoreSaved = true;
+                    std::cout << "[Main] Game Over. Score saved to leaderboard.txt\n";
                 }
             }
         } // end PLAYING update
@@ -671,6 +680,31 @@ int main()
             window.draw(buttonStartRect);
             window.draw(buttonStartText);
             ui.render();
+
+            // --- LEADERBOARD DISPLAY (MENU) ---
+            // Moved X to 600 to be more visible
+            sf::Text lbHeader("TOP 5 RUNS (Waves | Gold)", globalFont, 22);
+            lbHeader.setFillColor(sf::Color::Yellow);
+            lbHeader.setPosition(600.f, 200.f); 
+            window.draw(lbHeader);
+
+            float y = 240.f;
+            // Handle case where file is empty/deleted
+            if (leaderboard.empty()) {
+                sf::Text noScore("No runs recorded yet.", globalFont, 18);
+                noScore.setFillColor(sf::Color(200,200,200));
+                noScore.setPosition(600.f, y);
+                window.draw(noScore);
+            } else {
+                for (const auto& entry : leaderboard) {
+                    std::string row = "Wave " + std::to_string(entry.waves) + "  -  " + std::to_string(entry.goldEarned) + "g";
+                    sf::Text lbText(row, globalFont, 18);
+                    lbText.setFillColor(sf::Color::White);
+                    lbText.setPosition(600.f, y);
+                    window.draw(lbText);
+                    y += 30.f;
+                }
+            }
         }
         else if (gameState == GameState::PLAYING) {
             for (const auto& marker : plotMarkers) window.draw(marker);
@@ -682,7 +716,6 @@ int main()
             for (auto &up : enemyProjectiles) {
                 if (up) up->render(window);
             }   
-
 
             for (auto* tower : towers) tower->render(window);
 
@@ -714,30 +747,25 @@ int main()
 
             window.draw(buttonRestartRect);
             window.draw(buttonRestartText);
-        }
-        //LeaderBoard
-        sf::Text lbTitle("Top 5 Runs:", globalFont, 24);
-        lbTitle.setFillColor(sf::Color::Yellow);
-        lbTitle.setPosition(800.f, 160.f);
-        window.draw(lbTitle);
 
-        //Header
-        sf::Text lbHeader("Wave  |  Kills  |  Defenses", globalFont, 18);
-        lbHeader.setFillColor(sf::Color(200, 200, 200));
-        lbHeader.setPosition(800.f, 200.f);
-        window.draw(lbHeader);
-        float yOffset = 230.f;
-        for (const auto& s : highScores) {
-            std::string row = std::to_string(s.waves) + "         " + 
-                            std::to_string(s.kills) + "         " + 
-                            std::to_string(s.defenses);
-            
-            sf::Text lbRow(row, globalFont, 18);
-            lbRow.setFillColor(sf::Color::White);
-            lbRow.setPosition(800.f, yOffset);
-            window.draw(lbRow);
-            yOffset += 25.f;
-        }
+            // --- LEADERBOARD DISPLAY (GAME OVER) ---
+            // This was previously OUTSIDE the bracket, causing the bug.
+            // Now it is INSIDE this else if block.
+            sf::Text lbHeader("LEADERBOARD", globalFont, 24);
+            lbHeader.setFillColor(sf::Color::Yellow);
+            lbHeader.setPosition(800.f, 150.f);
+            window.draw(lbHeader);
+
+            float y = 200.f;
+            for (const auto& entry : leaderboard) {
+                std::string row = "Wave " + std::to_string(entry.waves) + "  -  " + std::to_string(entry.goldEarned) + "g";
+                sf::Text lbText(row, globalFont, 20);
+                lbText.setFillColor(sf::Color::White);
+                lbText.setPosition(800.f, y);
+                window.draw(lbText);
+                y += 35.f;
+            }
+        } // <--- THIS BRACKET CLOSES GAMEOVER.
 
         window.display();
     } // end while(window.isOpen())
