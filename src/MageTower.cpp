@@ -5,6 +5,7 @@
 #include "AudioManager.hpp"
 #include <cmath>
 #include <iostream>
+#include <memory>
 
 MageTower::MageTower(sf::Vector2f pos)
     : Tower(pos, 160.f, 30.f, 1.2f, 120)
@@ -30,12 +31,13 @@ void MageTower::update(float dt, const std::vector<Enemy*>& enemies)
 
     fireTimer += dt;
 
-    for (int i = projectiles.size()-1; i >= 0; --i) {
-        projectiles[i]->update(dt);
-        bool hit = projectiles[i]->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
-        if (projectiles[i]->shouldDelete()) {
-            delete projectiles[i];
-            projectiles.erase(projectiles.begin()+i);
+    for (auto it = projectiles.begin(); it != projectiles.end();) {
+        (*it)->update(dt);
+        bool hit = (*it)->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
+        if ((*it)->shouldDelete()) {
+            it = projectiles.erase(it);
+        } else {
+            ++it;
         }
     }
 
@@ -55,8 +57,7 @@ void MageTower::shoot(Enemy* target)
 {
     if (!target) return;
 
-    MagicBolt* bolt = new MagicBolt(position, target->getPosition(), 2.0f, 0.5f);
-    projectiles.push_back(bolt);
+    projectiles.push_back(std::make_unique<MagicBolt>(position, target->getPosition(), 2.0f, 0.5f));
 
     AudioManager::playSFX("enemy_hit");
 }
@@ -66,5 +67,7 @@ void MageTower::render(sf::RenderWindow& window)
     towerSprite.setPosition(position);
     window.draw(towerSprite);
 
-    for (auto* p : projectiles) p->render(window);
+    for (auto &up : projectiles) {
+        if (up) up->render(window);
+    }
 }

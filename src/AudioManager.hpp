@@ -14,7 +14,6 @@ public:
     static void playSFX(const std::string& id, float volume = 100.f);
 
     // Streamed background music: returns true on success
-    // Signature: (filename, loop, volume)
     static bool playBGM(const std::string& filename, bool loop = true, float volume = 60.f);
     static void stopBGM();
 
@@ -40,3 +39,4 @@ private:
     // dedicated player for looping a short sound (if needed)
     static sf::Sound _loopingSfxPlayer;
 };
+

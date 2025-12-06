@@ -59,3 +59,4 @@ sf::Font& AssetManager::getFont(const std::string& id) {
     }
     return it->second;
 }
+
