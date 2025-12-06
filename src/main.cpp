@@ -60,7 +60,8 @@ int main()
     AssetManager::loadTexture("scout",        "assets/sprites/scout.png");
 
     // // after loading assets / before game loop
-    // AudioManager::playBGM("assets/music/bgm_loop.wav", 40.f, true);
+    AudioManager::loadSFX("background_music", "assets/music/bgm_loop.wav");
+    AudioManager::playBGM("assets/music/bgm_loop.wav", true, 40.f);
     // AudioManager::playAmbience("assets/music/ambience_forest.wav", 30.f, true);
     // or loop a short ambient SFX:
     // AudioManager::loadSFX("wind", "assets/sfx/wind_loop.wav");
@@ -224,9 +225,9 @@ int main()
     };
 
     // Tell the UI when waves start and progress and capture wave locally
-    waveManager.onWaveStart = [&ui, &currentWaveLocal](int w){
+    waveManager.onWaveStart = [&ui](int w) {
+        currentWaveLocal = w; // uses the global directly
         ui.setWave(w);
-        currentWaveLocal = w;
     };
     waveManager.onWaveProgress = [&ui](int rem, int total){ ui.setWaveProgress(rem, total); };
 
