@@ -59,6 +59,14 @@ int main()
     AssetManager::loadTexture("magicbolt",    "assets/sprites/magicbolt.png");
     AssetManager::loadTexture("scout",        "assets/sprites/scout.png");
 
+    // // after loading assets / before game loop
+    // AudioManager::playBGM("assets/music/bgm_loop.wav", 40.f, true);
+    // AudioManager::playAmbience("assets/music/ambience_forest.wav", 30.f, true);
+    // or loop a short ambient SFX:
+    // AudioManager::loadSFX("wind", "assets/sfx/wind_loop.wav");
+    // AudioManager::loopSFX("wind", 30.f);
+
+
     // optional spritesheet
     AssetManager::loadTexture("grunt_walk",   "assets/spritesheets/grunt_walk.png");
 
@@ -115,7 +123,7 @@ int main()
         plotMarkers.push_back(square);
     }
 
-    // ===== CREATE TEST ENEMIES & TOWERS =====
+    // ===== CREATE TEST ENEMIES & TOWERS 
     vector<Enemy*> enemies;
     vector<Tower*> towers;
     std::vector<EnemyProjectile*> enemyProjectiles;
@@ -174,7 +182,7 @@ int main()
         ui.updateCastleHealth(castle.getHealth());
         // Behavior B: reset inter-wave delay to 30s for breathing room
         // waveManager.setInterWaveDelay(30.f);
-        // waveManager.extendInterWaveDelay(5.f);
+        waveManager.extendInterWaveDelay(2.f);
         std::cout << "[Main] Castle healed +" << healAmount << " HP\n";
     };
 
@@ -206,7 +214,7 @@ int main()
                 std::cout << "[Main] Tower upgraded at (" << tp.x << "," << tp.y << ")\n";
                 // Behavior B: reset inter-wave delay for breathing room
                 // waveManager.setInterWaveDelay(30.f);
-                waveManager.extendInterWaveDelay(5.f);
+                waveManager.extendInterWaveDelay(1.f);
                 break; // only upgrade one tower at the clicked spot
             }
         }
@@ -377,7 +385,7 @@ int main()
                                     newTower->onUpgrade = [&waveManager](float extraSeconds) {
                                         // choose behavior: reset to fixed 30s for breathing room
                                         // waveManager.setInterWaveDelay(30.0f);
-                                        // waveManager.extendInterWaveDelay(5.f);
+                                        waveManager.extendInterWaveDelay(1.f);
                                     };
                                     towers.push_back(newTower);
                                     defensesPlacedCount++;
@@ -526,6 +534,7 @@ int main()
                     int goldGained = e->getGoldValue();
                     cout << "Enemy died! Gained " << goldGained << " gold" << endl;
                     ui.addGold(goldGained);
+                    // ui.addGold(150);
                     AudioManager::playSFX("enemy_hit", 85.f);
 
                     enemiesEliminatedCount++;

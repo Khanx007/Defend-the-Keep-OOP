@@ -173,6 +173,7 @@ bool Tower::upgrade() {
     // If you prefer tower to check gold itself, pass gold ref or query UI; keep simple here.
 
     upgradeLevel++;
+    startActivation(30.f);
 
     // Example stat improvements per upgrade level:
     // - Increase max HP by +30%

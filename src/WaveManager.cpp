@@ -35,14 +35,7 @@ void WaveManager::startWave(int waveNum) {
     // speed multiplier applied to each enemy (calls e->multiplySpeed(...) when spawned)
     currentConfig.enemySpeedMultiplier = 1.0f + waveNum * 0.06f;
 
-    // (Optionally: you can add other multipliers to the config struct in WaveManager.hpp
-    //  such as enemyHealthMultiplier, enemyDamageMultiplier, enemyAttackRateMultiplier,
-    //  and then apply them in spawn - keep these as comments if your Enemy class lacks
-    //  matching methods.)
-    //
-    // currentConfig.enemyHealthMultiplier = 1.0f + waveNum * 0.12f;
-    // currentConfig.enemyDamageMultiplier = 1.0f + waveNum * 0.08f;
-    // currentConfig.enemyAttackRateMultiplier = std::max(0.6f, 1.0f - waveNum * 0.03f);
+    
 
     enemiesToSpawn = currentConfig.count;
     spawnedCount = 0;

@@ -26,7 +26,7 @@ Enemy::Enemy(const vector<sf::Vector2f>& path, float speed, int health, int dama
       health(health),
       maxHealth(health),
       damage(damage),
-      goldValue(goldValue),
+      goldValue(150),
       currentWaypoint(0)
 {
     if (!this->path.empty()) {
