@@ -72,7 +72,7 @@ void AudioManager::stopAmbience() {
     if (_ambience.getStatus() == sf::Music::Playing) _ambience.stop();
 }
 
-// Loop a short SFX buffer (if you loaded it via loadSFX)
+// Loop a short SFX buffer 
 void AudioManager::loopSFX(const std::string& id, float volume) {
     auto it = _sfx.find(id);
     if (it == _sfx.end()) return;

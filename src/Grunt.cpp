@@ -29,9 +29,6 @@ Grunt::Grunt(const std::vector<sf::Vector2f>& path)
         sprite.setOrigin(static_cast<float>(tex.getSize().x) / 2.f,
                          static_cast<float>(tex.getSize().y) / 2.f);
         sprite.setPosition(position);
-
-        // Optional: automatic scaling to roughly match the fallback circle size.
-        // If your image frames are large you may want to scale them down.
         const float desiredRadius = 15.f; // half-size we used for circle
         float texWidth = static_cast<float>(tex.getSize().x);
         float scale = (desiredRadius * 2.f) / texWidth;
