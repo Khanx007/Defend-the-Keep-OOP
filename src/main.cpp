@@ -62,7 +62,7 @@ int main()
 
     // // after loading assets / before game loop
     AudioManager::loadSFX("background_music", "assets/music/bgm_loop.wav");
-    AudioManager::playBGM("assets/music/bgm_loop.wav", true, 40.f);
+    AudioManager::playBGM("assets/music/bgm_loop.wav", true, 35.f);
     // AudioManager::playAmbience("assets/music/ambience_forest.wav", 30.f, true);
     // or loop a short ambient SFX:
     // AudioManager::loadSFX("wind", "assets/sfx/wind_loop.wav");
@@ -81,8 +81,6 @@ int main()
     AudioManager::loadSFX("enemy_hit",   "assets/sfx/enemy_hit.wav");
     AudioManager::loadSFX("castle_hit",  "assets/sfx/castle_hit.wav");
 
-    // === BGM (AudioManager.playBGM opens directly by filename) ===
-    AudioManager::playBGM("assets/music/bgm_loop.wav", true, 35.f);
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Defend The Keep - Enemy Test");
     window.setFramerateLimit(60);
@@ -664,3 +662,4 @@ int main()
     cout << "Game closed. Goodbye!" << endl;
     return 0;
 }
+
