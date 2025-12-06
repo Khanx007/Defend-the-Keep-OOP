@@ -107,7 +107,13 @@ int main()
     AssetManager::loadTexture("mage_tower",   "assets/sprites/mage_tower.png");
     AssetManager::loadTexture("magicbolt",    "assets/sprites/magicbolt.png");
     AssetManager::loadTexture("scout",        "assets/sprites/scout.png");
-
+    AssetManager::loadTexture("background", "assets/sprites/BackgroundPicture.png");
+    sf::Sprite backgroundSprite;
+    backgroundSprite.setTexture(AssetManager::getTexture("background"));
+    backgroundSprite.setScale(
+        float(window.getSize().x) / backgroundSprite.getTexture()->getSize().x,
+        float(window.getSize().y) / backgroundSprite.getTexture()->getSize().y
+    );
     // // after loading assets / before game loop
     AudioManager::loadSFX("background_music", "assets/music/bgm_loop.wav");
     AudioManager::playBGM("assets/music/bgm_loop.wav", true, 35.f);
@@ -655,7 +661,8 @@ int main()
         } // end PLAYING update
 
         // ===== RENDER =====
-        window.clear(sf::Color(50, 150, 50));  // Grass green background
+        window.clear();                
+        window.draw(backgroundSprite); // Drawing the background first
 
         if (gameState == GameState::MENU) {
             // Draw menu UI
@@ -748,4 +755,5 @@ int main()
     cout << "Game closed. Goodbye!" << endl;
     return 0;
 }
+
 
