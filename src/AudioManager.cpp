@@ -15,9 +15,7 @@ void AudioManager::loadSFX(const std::string& id, const std::string& filename) {
         std::cerr << "[AudioManager] failed to load sfx: " << filename << "\n";
         return;
     }
-    // store buffer (moved into map)
     _sfx.emplace(id, std::move(buf));
-    // ensure player pool exists (8 players default)
     if (_players.size() < 8) _players.resize(8);
 }
 
@@ -26,7 +24,6 @@ void AudioManager::playSFX(const std::string& id, float volume) {
     auto it = _sfx.find(id);
     if (it == _sfx.end()) return;
 
-    // find a free player
     for (auto &p : _players) {
         if (p.getStatus() != sf::Sound::Playing) {
             p.setBuffer(it->second);
@@ -36,7 +33,6 @@ void AudioManager::playSFX(const std::string& id, float volume) {
         }
     }
 
-    // if all players busy, reuse the first one
     if (!_players.empty()) {
         _players[0].setBuffer(it->second);
         _players[0].setVolume(volume);
@@ -89,3 +85,4 @@ void AudioManager::loopSFX(const std::string& id, float volume) {
 void AudioManager::stopLoopSFX() {
     if (_loopingSfxPlayer.getStatus() == sf::Sound::Playing) _loopingSfxPlayer.stop();
 }
+
