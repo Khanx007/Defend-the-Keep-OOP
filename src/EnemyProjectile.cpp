@@ -60,3 +60,11 @@ void EnemyProjectile::render(sf::RenderWindow& window) {
     s.setFillColor(sf::Color::Red);
     window.draw(s);
 }
+
+
+
+
+void EnemyProjectile::clearTarget() {
+    target = nullptr;
+}
+

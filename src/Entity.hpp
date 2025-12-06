@@ -21,6 +21,8 @@ public:
     // Sprite / bounds helper
     virtual sf::FloatRect getBounds() const;
 
+
+
 protected:
     sf::Sprite sprite;
     sf::Vector2f position{0.f, 0.f};

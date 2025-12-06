@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <climits>
+#include <memory>
 
 // SFML
 #include <SFML/Graphics.hpp>
@@ -127,7 +128,10 @@ int main()
     // ===== CREATE TEST ENEMIES & TOWERS 
     vector<Enemy*> enemies;
     vector<Tower*> towers;
-    std::vector<EnemyProjectile*> enemyProjectiles;
+
+         
+    std::vector<std::unique_ptr<EnemyProjectile>> enemyProjectiles;
+
 
     // Create Castle
     Castle castle;
@@ -151,7 +155,8 @@ int main()
 
                 // projectile spawner
                 e->setProjectileSpawner([&enemyProjectiles](Enemy* self, sf::Vector2f origin, Entity* target, int damage) {
-                    enemyProjectiles.push_back(new EnemyProjectile(origin, target, 300.f, damage));
+                    // new push (use make_unique)
+                    enemyProjectiles.push_back(std::make_unique<EnemyProjectile>(origin, target, 300.f, damage));
                     AudioManager::playSFX("shoot_arrow", 80.f);
                 });
 
@@ -312,7 +317,6 @@ int main()
                         enemies.clear();
                         for (auto* t : towers) delete t;
                         towers.clear();
-                        for (auto* p : enemyProjectiles) delete p;
                         enemyProjectiles.clear();
 
                         castle = Castle();
@@ -337,7 +341,6 @@ int main()
                         enemies.clear();
                         for (auto* t : towers) delete t;
                         towers.clear();
-                        for (auto* p : enemyProjectiles) delete p;
                         enemyProjectiles.clear();
 
                         castle = Castle();
@@ -408,7 +411,7 @@ int main()
                 for (auto* enemy : enemies) delete enemy;
                 enemies.clear();
 
-                for (auto* p : enemyProjectiles) delete p;
+
                 enemyProjectiles.clear();
 
                 cout << "All enemies & enemy projectiles cleared!" << endl;
@@ -440,6 +443,7 @@ int main()
 
                 if (t->isExpired() || t->isDestroyed()) {
                     // Clear any enemy that had this tower as its attack target to avoid dangling pointers.
+                    // Clear any enemy that had this tower as its attack target to avoid dangling pointers.
                     for (Enemy* e : enemies) {
                         if (!e) continue;
                         if (e->getAttackTarget() == t) {
@@ -447,19 +451,29 @@ int main()
                         }
                     }
 
-                    // before deleting tower 't', remove any enemy projectiles targeting it
-                    for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
-                        EnemyProjectile* p = enemyProjectiles[pi];
-                        if (!p) continue;
-                        if (p->getTarget() == t) {
-                            delete p;
-                            enemyProjectiles.erase(enemyProjectiles.begin() + pi);
+                    // Also clear any enemy-projectiles that were targeting this tower
+                    for (auto &up : enemyProjectiles) {
+                        if (!up) continue;
+                        if (up->getTarget() == t) {
+                            up->clearTarget(); // now safe — projectile won't dereference freed tower
+                        }
+                    }
+
+                    // update enemyProjectiles loop...
+                    for (auto it = enemyProjectiles.begin(); it != enemyProjectiles.end();) {
+                        EnemyProjectile* p = it->get();
+                        p->update(dt);
+                        if (p->shouldRemove()) {
+                            it = enemyProjectiles.erase(it); // unique_ptr destructor frees memory      
+                        } else {
+                            ++it;
                         }
                     }
 
                     delete t;
                     towers.erase(towers.begin() + ti);
                     std::cout << "[Main] Tower expired/destroyed and removed.\n";
+
                 }
             }
 
@@ -514,18 +528,20 @@ int main()
                 enemy->resetColor();
             }
 
-            // --- Update enemy projectiles (move, hit, remove) ---
-            for (int pi = static_cast<int>(enemyProjectiles.size()) - 1; pi >= 0; --pi) {
-                EnemyProjectile* p = enemyProjectiles[pi];
-                if (!p) { enemyProjectiles.erase(enemyProjectiles.begin() + pi); continue; }
-
+            for (auto it = enemyProjectiles.begin(); it != enemyProjectiles.end();) {
+                EnemyProjectile* p = it->get();
+                if (!p) {
+                    it = enemyProjectiles.erase(it);
+                    continue;
+                }
                 p->update(dt);
-
                 if (p->shouldRemove()) {
-                    delete p;
-                    enemyProjectiles.erase(enemyProjectiles.begin() + pi);
+                    it = enemyProjectiles.erase(it);
+                } else {
+                    ++it;
                 }
             }
+
 
             // Remove dead or finished enemies, award gold / damage castle / notify waves
             for (int i = static_cast<int>(enemies.size()) - 1; i >= 0; --i) {
@@ -595,7 +611,10 @@ int main()
             castle.render(window);
 
             for (auto* enemy : enemies) enemy->render(window);
-            for (auto* p : enemyProjectiles) p->render(window);
+            for (auto &up : enemyProjectiles) {
+                if (up) up->render(window);
+            }   
+
 
             for (auto* tower : towers) tower->render(window);
 
@@ -639,7 +658,7 @@ int main()
     for (auto* tower : towers) delete tower;
     towers.clear();
 
-    for (auto* p : enemyProjectiles) delete p;
+    
     enemyProjectiles.clear();
 
     cout << "Game closed. Goodbye!" << endl;

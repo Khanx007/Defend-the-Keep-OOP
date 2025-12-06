@@ -5,6 +5,7 @@
 #include "AudioManager.hpp"
 #include <cmath>
 #include <iostream>
+#include <memory>
 
 CannonTower::CannonTower(sf::Vector2f pos)
     : Tower(pos, 180.f, 80.f, 3.0f, 100)
@@ -29,14 +30,15 @@ void CannonTower::update(float dt, const std::vector<Enemy*>& enemies)
 
     fireTimer += dt;
 
-    // Update cannonballs
-    for (int i = projectiles.size()-1; i >= 0; --i) {
-        projectiles[i]->update(dt);
-        bool hit = projectiles[i]->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
+    // Update cannonballs — use iterator erase so unique_ptr destructor frees memory
+    for (auto it = projectiles.begin(); it != projectiles.end();) {
+        (*it)->update(dt);
+        bool hit = (*it)->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
 
-        if (projectiles[i]->shouldDelete()) {
-            delete projectiles[i];
-            projectiles.erase(projectiles.begin()+i);
+        if ((*it)->shouldDelete()) {
+            it = projectiles.erase(it); // unique_ptr deletes automatically
+        } else {
+            ++it;
         }
     }
 
@@ -57,8 +59,8 @@ void CannonTower::shoot(Enemy* target)
 {
     if (!target) return;
 
-    CannonBall* ball = new CannonBall(position, target->getPosition(), 80.f);
-    projectiles.push_back(ball);
+    // Use unique_ptr
+    projectiles.push_back(std::make_unique<CannonBall>(position, target->getPosition(), 80.f));
 
     AudioManager::playSFX("explosion");
 }
@@ -68,5 +70,7 @@ void CannonTower::render(sf::RenderWindow& window)
     towerSprite.setPosition(position);
     window.draw(towerSprite);
 
-    for (auto* p : projectiles) p->render(window);
+    for (auto &up : projectiles) {
+        if (up) up->render(window);
+    }
 }

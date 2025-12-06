@@ -21,6 +21,10 @@ public:
 
     void markForRemoval() { removeFlag = true; }
 
+    // accessors for the non-owning target pointer (used by main when clearing targets)
+    void clearTarget();
+
+
 
 private:
     Entity* target = nullptr;

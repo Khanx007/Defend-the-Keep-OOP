@@ -38,14 +38,15 @@ void ArcherTower::update(float dt, const std::vector<Enemy*>& enemies)
 
     fireTimer += dt;
 
-    // Update projectiles
-    for (int i = projectiles.size()-1; i >= 0; --i) {
-        projectiles[i]->update(dt);
-        bool hit = projectiles[i]->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
+    // Update projectiles — use iterator erase so unique_ptr destructor frees memory
+    for (auto it = projectiles.begin(); it != projectiles.end();) {
+        (*it)->update(dt);
+        bool hit = (*it)->checkCollision(const_cast<std::vector<Enemy*>&>(enemies));
 
-        if (projectiles[i]->shouldDelete()) {
-            delete projectiles[i];
-            projectiles.erase(projectiles.begin()+i);
+        if ((*it)->shouldDelete()) {
+            it = projectiles.erase(it); // unique_ptr automatically deletes
+        } else {
+            ++it;
         }
     }
 
@@ -68,8 +69,8 @@ void ArcherTower::shoot(Enemy* target)
 {
     if (!target) return;
 
-    Arrow* arrow = new Arrow(position, target->getPosition());
-    projectiles.push_back(arrow);
+    // create and own projectile via unique_ptr
+    projectiles.push_back(std::make_unique<Arrow>(position, target->getPosition()));
 
     AudioManager::playSFX("shoot_arrow");
 }
@@ -79,5 +80,7 @@ void ArcherTower::render(sf::RenderWindow& window)
     towerSprite.setPosition(position);
     window.draw(towerSprite);
 
-    for (auto* p : projectiles) p->render(window);
+    for (auto &up : projectiles) {
+        if (up) up->render(window);
+    }
 }
