@@ -90,9 +90,6 @@ protected:
     bool useProjectiles = true;
     // in protected:
     std::function<void(class Enemy*, sf::Vector2f, Entity*, int)> spawnEnemyProjectileFn;
-
-    // spawnEnemyProjectileFn(this, originPos, target, damage) must create projectile
-    // in public (or protected) of Enemy.hpp
     std::function<void(Enemy*)> onDeathCallback;
 
     Entity* fallbackTarget = nullptr;
